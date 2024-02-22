@@ -2,7 +2,7 @@
 
 declare (strict_types=1);
 
-namespace app\payment\controller;
+namespace plugin\payment\controller;
 
 use plugin\account\model\AccountUser;
 use plugin\payment\service\BalanceService;
