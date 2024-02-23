@@ -44,7 +44,12 @@ class InstallPayment extends Migrator
      */
     protected function _create_insertMenu()
     {
-        PhinxExtend::write2menu(Service::menu(), ['node' => 'plugin-payment/config/index']);
+        PhinxExtend::write2menu([
+            [
+                'name' => '支付管理',
+                'subs' => Service::menu(),
+            ],
+        ], ['node' => 'plugin-payment/config/index']);
     }
 
     /**

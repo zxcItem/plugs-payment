@@ -48,24 +48,19 @@ class Service extends Plugin
             [
                 'name' => '支付管理',
                 'subs' => [
-                    [
-                        'name' => '支付管理',
-                        'subs' => [
-                            ['name' => '支付配置管理', 'icon' => 'layui-icon layui-icon-user', 'node' => "{$code}/config/index"],
-                            ['name' => '支付行为管理', 'icon' => 'layui-icon layui-icon-edge', 'node' => "{$code}/record/index"],
-                            ['name' => '支付退款管理', 'icon' => 'layui-icon layui-icon-firefox', 'node' => "{$code}/refund/index"],
-                        ],
-                    ],
-                    [
-                        'name' => '资金管理',
-                        'subs' => [
-                            ['name' => '资金统计报表', 'icon' => 'layui-icon layui-icon-chart', 'node' => "{$code}/portal/fund"],
-                            ['name' => '账号余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/balance/index"],
-                            ['name' => '账号积分管理', 'icon' => 'layui-icon layui-icon-find-fill', 'node' => "{$code}/integral/index"],
-                        ],
-                    ],
-                ]
-            ]
+                    ['name' => '支付配置管理', 'icon' => 'layui-icon layui-icon-user', 'node' => "{$code}/config/index"],
+                    ['name' => '支付行为管理', 'icon' => 'layui-icon layui-icon-edge', 'node' => "{$code}/record/index"],
+                    ['name' => '支付退款管理', 'icon' => 'layui-icon layui-icon-firefox', 'node' => "{$code}/refund/index"],
+                ],
+            ],
+            [
+                'name' => '资金管理',
+                'subs' => [
+                    ['name' => '资金统计报表', 'icon' => 'layui-icon layui-icon-chart', 'node' => "{$code}/portal/fund"],
+                    ['name' => '账号余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/balance/index"],
+                    ['name' => '账号积分管理', 'icon' => 'layui-icon layui-icon-find-fill', 'node' => "{$code}/integral/index"],
+                ],
+            ],
         ];
     }
 }
