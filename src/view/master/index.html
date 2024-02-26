@@ -1,0 +1,40 @@
+{extend name='table'}
+
+{block name="content"}
+<div class="layui-tab layui-tab-card">
+    <div class="layui-tab-content">
+        {include file='master/index_search'}
+        <table id="UserTable" data-url="{:request()->url()}" data-target-search="form.form-search"></table>
+    </div>
+</div>
+
+<script>
+    $(function () {
+        $('#UserTable').layTable({
+            even: true, height: 'full',
+            sort: {field: 'sort desc,id', type: 'desc'},
+            cols: [[
+                {field: 'id', hide: true},
+                {checkbox: true, fixed: true},
+                {field: 'headimg', title: '头像', width: 60, align: 'center', templet: '<div>{{-showTableImage(d.headimg,true,"xs")}}</div>'},
+                {field: 'code', title: '用户编号', minWidth: 100, align: 'center', templet: '<div>{{d.code||"-"}}</div>'},
+                {field: 'phone', title: '绑定手机', minWidth: 110, align: 'center', templet: '<div>{{d.phone||"-"}}</div>'},
+                {field: 'username', title: '用户姓名', minWidth: 100, align: 'center', templet: '<div>{{d.username||"-"}}</div>'},
+                {field: 'nickname', title: '用户昵称', minWidth: 100, align: 'center', templet: '<div>{{d.nickname||"-"}}</div>'},
+                {field: 'create_time', title: '绑定时间', align: 'center', minWidth: 170, sort: true},
+                {toolbar: '#toolbar', title: '操作面板', align: 'center', minWidth: 100, fixed: 'right'}
+            ]]
+        });
+    });
+</script>
+
+
+<script type="text/html" id="toolbar">
+    <!--{if auth("balance/add")}-->
+    <a class="layui-btn layui-btn-sm layui-btn-primary" data-modal="{:url('balance/add')}?unid={{d.id}}" data-title="充值账户余额">余 额</a>
+    <!--{/if}-->
+    <!--{if auth("integral/add")}-->
+    <a class="layui-btn layui-btn-sm layui-btn-primary" data-modal="{:url('integral/add')}?unid={{d.id}}" data-title="充值账户积分">积 分</a>
+    <!--{/if}-->
+</script>
+{/block}
