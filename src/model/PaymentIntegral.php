@@ -19,8 +19,8 @@ class PaymentIntegral extends Abs
      */
     public static $Types = [
         ['value' => '充值积分', 'amount' => 0, 'name' => 'integral_total'],
-        ['value' => '剩余积分', 'amount' => 0, 'name' => 'integral_usable'],
         ['value' => '锁定积分', 'amount' => 0, 'name' => 'integral_lock'],
+        ['value' => '剩余积分', 'amount' => 0, 'name' => 'integral_usable'],
         ['value' => '支出积分', 'amount' => 0, 'name' => 'integral_used'],
     ];
 

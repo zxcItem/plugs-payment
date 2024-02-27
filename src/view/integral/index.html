@@ -2,7 +2,7 @@
 
 {block name="content"}
 <div class="think-box-notify sub-strong-blue">
-    <strong>余额统计</strong>：<span>累计发放 <b>{$integralTotal|number_format}</b> 积分，已消费 <b>{$integralCount|abs|number_format}</b> 积分，剩余可用 <b>{:number_format($integralTotal+$integralCount)}</b> 积分。</span>
+    <strong>余额统计</strong>：<span>累计充值 <b>{$integral.total|number_format}</b> 积分，已消费 <b>{$integral.used|number_format}</b> 积分，锁定中 <b>{$integral.lock|number_format}</b> 积分，剩余可用余额 <b>{$integral.usable|number_format}</b> 积分。</span>
 </div>
 
 <div class="layui-tab layui-tab-card">

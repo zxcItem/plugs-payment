@@ -147,7 +147,7 @@ abstract class IntegralService
         $data['integral_lock'] = $lock;
         $data['integral_used'] = abs($used);
         $data['integral_total'] = $total;
-        $data['integral_usable'] = $total - abs($used);
+        $data['integral_usable'] = $total - abs($used) - $lock;
         if ($isUpdate) $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
         return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $data['integral_usable']];
     }
@@ -178,5 +178,19 @@ abstract class IntegralService
         ($model = self::get($code))->save($data);
         self::recount($model->getAttr('unid'));
         return $model->refresh();
+    }
+
+    /**
+     * 统计积分
+     * @return array [lock,used,total,usable]
+     */
+    public static function recountAll(): array
+    {
+        // 统计余额数据
+        $map = ['cancel' => 0, 'deleted' => 0];
+        $lock = PaymentIntegral::mk()->where($map)->where('unlock', '=', '0')->sum('amount');
+        $used = PaymentIntegral::mk()->where($map)->where('amount', '<', '0')->sum('amount');
+        $total = PaymentIntegral::mk()->where($map)->where('amount', '>', '0')->sum('amount');
+        return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $total - abs($used) - $lock];
     }
 }

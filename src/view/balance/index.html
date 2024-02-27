@@ -2,7 +2,7 @@
 
 {block name="content"}
 <div class="think-box-notify sub-strong-blue">
-    <strong>余额统计</strong>：<span>累计充值 <b>{$balanceTotal|number_format}</b> 元，已消费 <b>{$balanceCount|abs|number_format}</b> 元，剩余可用余额 <b>{:number_format($balanceTotal+$balanceCount)}</b> 元。</span>
+    <strong>余额统计</strong>：<span>累计充值 <b>{$balance.total|number_format}</b> 元，已消费 <b>{$balance.used|number_format}</b> 元，锁定中 <b>{$balance.lock|number_format}</b> 元，剩余可用余额 <b>{$balance.usable|number_format}</b> 元。</span>
 </div>
 
 <div class="layui-tab layui-tab-card">

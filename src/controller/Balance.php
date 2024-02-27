@@ -36,8 +36,7 @@ class Balance extends Controller
         $this->type = $this->get['type'] ?? 'index';
         PaymentBalance::mQuery()->layTable(function () {
             $this->title = '用户余额管理';
-            $this->balanceTotal = PaymentBalance::mk()->where(['cancel' => 0, 'deleted' => 0])->whereRaw("amount>0")->sum('amount');
-            $this->balanceCount = PaymentBalance::mk()->where(['cancel' => 0, 'deleted' => 0])->whereRaw("amount<0")->sum('amount');
+            $this->balance = BalanceService::recountAll();
         }, function (QueryHelper $query) {
             $query->with(['user'])->like('code,remark')->dateBetween('create_time');
             $query->where(['deleted' => 0, 'cancel' => intval($this->type !== 'index')]);
