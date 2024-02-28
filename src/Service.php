@@ -58,8 +58,9 @@ class Service extends Plugin
                 'subs' => [
                     ['name' => '资金统计报表', 'icon' => 'layui-icon layui-icon-chart', 'node' => "{$code}/portal/fund"],
                     ['name' => '用户资产管理', 'icon' => 'layui-icon layui-icon-dollar', 'node' => "{$code}/master/index"],
-                    ['name' => '账号余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/balance/index"],
-                    ['name' => '账号积分管理', 'icon' => 'layui-icon layui-icon-find-fill', 'node' => "{$code}/integral/index"],
+                    ['name' => '用户余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/balance/index"],
+                    ['name' => '用户积分管理', 'icon' => 'layui-icon layui-icon-find-fill', 'node' => "{$code}/integral/index"],
+                    ['name' => '用户提现管理', 'icon' => 'layui-icon layui-icon-dollar', 'node' => "{$code}/transfer/index"],
                 ],
             ],
         ];
