@@ -92,6 +92,7 @@ class Record extends Controller
                     $this->success('凭证审核驳回！');
                 } else {
                     $this->app->event->trigger('PluginPaymentSuccess', $action->refresh());
+                    $this->app->event->trigger('PluginMallPaymentSuccess', $action->refresh());
                     $this->success('凭证审核通过！');
                 }
             } else {
@@ -133,6 +134,7 @@ class Record extends Controller
         if ($record->isEmpty()) $this->error('支付单号异常！');
         if (empty($record->getAttr('payment_status'))) $this->error('未完成支付！');
         $this->app->event->trigger('PluginPaymentSuccess', $record);
+        $this->app->event->trigger('PluginMallPaymentSuccess', $record);
         $this->success('重新触发支付行为！');
     }
 }

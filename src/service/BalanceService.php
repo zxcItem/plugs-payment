@@ -21,6 +21,9 @@ namespace plugin\payment\service;
 use plugin\account\model\AccountUser;
 use plugin\payment\model\PaymentBalance;
 use think\admin\Exception;
+use think\db\exception\DataNotFoundException;
+use think\db\exception\DbException;
+use think\db\exception\ModelNotFoundException;
 
 /**
  * 用户余额调度器
@@ -71,6 +74,26 @@ abstract class BalanceService
             return $model->refresh();
         } else {
             throw new Exception('余额变更失败！');
+        }
+    }
+
+    /**
+     * 更新多条相同code的明细
+     * @param string $code
+     * @throws Exception
+     * @throws DataNotFoundException
+     * @throws DbException
+     * @throws ModelNotFoundException
+     */
+    public static function update(string $code)
+    {
+        $map = [['deleted', '=', 0], ['unlock', '=', 0], ['code', 'like', "%{$code}"]];
+        $balances = PaymentBalance::mk()->where($map)->select()->toarray();
+        if ($balances){
+            PaymentBalance::mk()->where($map)->update(['unlock' => 1, 'unlock_time' => date('Y-m-d H:i:s')]);
+            foreach($balances as $balance) {
+                self::recount($balance['unid']);
+            }
         }
     }
 

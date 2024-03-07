@@ -217,6 +217,7 @@ trait PaymentUsageTrait
 
         // 触发支付成功事件
         $this->app->event->trigger('PluginPaymentSuccess', $model->refresh());
+        $this->app->event->trigger('PluginMallPaymentSuccess', $model->refresh());
 
         // 更新记录状态
         return $model->toArray();
