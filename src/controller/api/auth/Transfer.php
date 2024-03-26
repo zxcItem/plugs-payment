@@ -161,7 +161,6 @@ class Transfer extends Auth
     public function config()
     {
         $data = UserTransfer::config();
-        $data['banks'] = UserTransfer::banks();
         $this->success('获取用户提现配置', $data);
     }
 }
