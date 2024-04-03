@@ -124,10 +124,11 @@ class WechatPaymentV3 extends WechatPayment
             $result = empty($notify['result']) ? [] : json_decode($notify['result'], true);
             if (empty($result) || !is_array($result)) return response('error', 500);
             if ($data['scen'] === 'order' && ($result['trade_state'] ?? '') == 'SUCCESS') {
-                //$pAmount = strval($result['amount']['payer_total'] / 100);
                 // 不考虑支付平台的优惠券金额
                 $pAmount = strval($result['amount']['total'] / 100);
-                if (!$this->updateAction($result['out_trade_no'], $result['transaction_id'], $pAmount)) {
+                [$pCode, $pTrade] = [$result['out_trade_no'], $result['transaction_id']];
+                $pCoupon = strval(($result['amount']['total'] - $result['amount']['payer_total']) / 100);
+                if (!$this->updateAction($pCode, $pTrade, $pAmount, null, $pCoupon, $result)) {
                     return response('error', 500);
                 }
             } elseif ($data['scen'] === 'refund' && ($result['refund_status'] ?? '') == 'SUCCESS') {

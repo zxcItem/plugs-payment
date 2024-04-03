@@ -190,31 +190,35 @@ trait PaymentUsageTrait
     }
 
     /**
-     * 更新创建支付行为
-     * @param string $payCode 商户订单单号
-     * @param string $payTrade 平台交易单号
-     * @param string $payAmount 实际到账金额
-     * @param string $payRemark 平台支付备注
-     * @return boolean|array
+     * 更新支付行为记录
+     * * @param string $pCode 商户订单单号
+     * * @param string $pTrade 平台交易单号
+     * * @param string $pAmount 实际支付金额
+     * * @param string|null $pRemark 平台支付备注
+     * * @param string|null $pCoupon 优惠券金额
+     * * @param array|null $pNotify 支付通知数据
+     * * @return array|false
      */
-    protected function updateAction(string $payCode, string $payTrade, string $payAmount, string $payRemark = '在线支付')
+    protected function updateAction(string $pCode, string $pTrade, string $pAmount, ?string $pRemark = '在线支付', ?string $pCoupon = null, ?array $pNotify = null)
     {
         // 更新支付记录
-        $map = ['code' => $payCode, 'channel_code' => $this->cfgCode, 'channel_type' => $this->cfgType];
+        $map = ['code' => $pCode, 'channel_code' => $this->cfgCode, 'channel_type' => $this->cfgType];
         if (($model = PaymentRecord::mk()->where($map)->findOrEmpty())->isEmpty()) return false;
 
-        // 更新支付行为
-        $model->save([
-            'code'           => $payCode,
+        $data = [
+            'code'           => $pCode,
             'channel_code'   => $this->cfgCode,
             'channel_type'   => $this->cfgType,
             'payment_time'   => date('Y-m-d H:i:s'),
-            'payment_trade'  => $payTrade,
+            'payment_trade'  => $pTrade,
             'payment_status' => 1,
-            'payment_amount' => $payAmount,
-            'payment_remark' => $payRemark,
-        ]);
-
+            'payment_amount' => $pAmount,
+        ];
+        if (is_array($pNotify)) $data['payment_notify'] = $pNotify;
+        if (is_string($pRemark)) $data['payment_remark'] = $pRemark;
+        if (is_numeric($pCoupon)) $data['payment_coupon'] = $pCoupon;
+        // 更新支付行为
+        $model->save($data);
         // 触发支付成功事件
         $this->app->event->trigger('PluginPaymentSuccess', $model->refresh());
         $this->app->event->trigger('PluginMallPaymentSuccess', $model->refresh());

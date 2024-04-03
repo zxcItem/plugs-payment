@@ -118,7 +118,9 @@ class WechatPaymentV2 extends WechatPayment
         p($data, false, 'notify_v2');
         p($notify, false, 'notify_v2');
         if ($data['scen'] === 'order' && $notify['result_code'] == 'SUCCESS' && $notify['return_code'] == 'SUCCESS') {
-            if (!$this->updateAction($notify['out_trade_no'], $notify['transaction_id'], strval($notify['cash_fee'] / 100))) {
+            [$pCode, $pTrade] = [$notify['out_trade_no'], $notify['transaction_id']];
+            [$pAmount, $pCoupon] = [strval($notify['cash_fee'] / 100), strval($notify['coupon_fee'] / 100)];
+            if (!$this->updateAction($pCode, $pTrade, $pAmount, null, $pCoupon, $notify)) {
                 return xml(['return_code' => 'ERROR', 'return_msg' => '数据更新失败']);
             }
         } elseif ($data['scen'] === 'refund' && ($notify['refund_status'] ?? '') == 'SUCCESS') {
