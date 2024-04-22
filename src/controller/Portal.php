@@ -20,6 +20,8 @@ class Portal extends Controller
 
     /**
      * 积分余额统计
+     * @auth true
+     * @menu true
      * @return void
      * @throws DbException
      * @throws DataNotFoundException
