@@ -53,23 +53,23 @@ abstract class BalanceService
         $usable = PaymentBalance::mk()->where($map)->sum('amount');
         if ($amount < 0 && abs($amount) > $usable) throw new Exception('扣减余额不足！');
 
+        // 余额标准字段
+        $data = ['unid' => $unid, 'code' => $code, 'name' => $name, 'amount' => $amount, 'remark' => $remark];
+
+        // 锁定状态处理
+        $data['unlock'] = intval($unlock);
+        if ($data['unlock']) $data['unlock_time'] = date('Y-m-d H:i:s');
+
+        // 统计操作前的金额
+        $data['amount_prev'] = $usable;
+        $data['amount_next'] = $usable + $amount;
+
         // 检查编号是否重复
         $map = ['unid' => $unid, 'code' => $code, 'deleted' => 0];
         $model = PaymentBalance::mk()->where($map)->findOrEmpty();
 
         // 更新或写入余额变更
-        $model->save([
-            'unid'        => $unid,
-            'code'        => $code,
-            'name'        => $name,
-            'amount'      => $amount,
-            'remark'      => $remark,
-            'status'      => 1,
-            'unlock'      => $unlock ? 1 : 0,
-            'unlock_time' => date('Y-m-d H:i:s'),
-            //'create_by'   => AdminService::getUserId()
-        ]);
-        if ($model->isExists()) {
+        if ($model->save($data)) {
             self::recount($unid);
             return $model->refresh();
         } else {
