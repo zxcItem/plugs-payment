@@ -155,12 +155,14 @@ class WechatPaymentV3 extends WechatPayment
      * @param string $pcode 支付单号
      * @param string $amount 退款金额
      * @param string $reason 退款原因
+     * @param string|null $rcode
      * @return array [状态, 消息]
+     * @throws Exception
      */
-    public function refund(string $pcode, string $amount, string $reason = ''): array
+    public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
         try {
-            // 同步已退款状态
+            // 记录退款
             $record = static::syncRefund($pcode, $rcode, $amount, $reason);
             // 创建退款申请
             $options = [
@@ -178,10 +180,10 @@ class WechatPaymentV3 extends WechatPayment
             if (in_array($result['code'] ?? $result['status'], ['SUCCESS', 'PROCESSING'])) {
                 return [1, '已提交退款！'];
             } else {
-                return [0, $result['message'] ?? $result['status']];
+                throw new Exception($result['message'] ?? $result['status'], 0);
             }
         } catch (\Exception $exception) {
-            return [$exception->getCode(), $exception->getMessage()];
+            throw new Exception($exception->getMessage(), $exception->getCode());
         }
     }
 }

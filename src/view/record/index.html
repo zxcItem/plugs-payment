@@ -17,7 +17,7 @@
 <script>
     $(function () {
         $('#PaymentRecordTable').layTable({
-            even: true, height: 'full', width: 'full', sort: {field: 'id', type: 'desc'}, cellExpandedMode: 'tips',
+            even: true, height: 'full', sort: {field: 'id', type: 'desc'}, cellExpandedMode: 'tips',
             cols: [[
                 /* {if $mode neq 'modal'} */
                 {field: 'headimg', title: '头像', width: 85, align: 'center', templet: '<div>{{-showTableImage(d.user.headimg,true,"md")}}</div>'},

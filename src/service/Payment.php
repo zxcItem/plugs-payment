@@ -395,8 +395,58 @@ abstract class Payment
      */
     public static function leaveAmount(string $orderNo, $orderAmount): float
     {
-        $diff = floatval($orderAmount) - self::paidAmount($orderNo);
+        $diff = floatval($orderAmount) - self::paidAmount($orderNo, true);
         return $diff > 0 ? $diff : 0.00;
+    }
+
+    /**
+     * 统计三种模式支付金额
+     * @param string $orderNo
+     * @return array ['amount'=>0,'payment'=>0,'balance'=>0,'integral'=>0]
+     */
+    public static function totalPaymentAmount(string $orderNo): array
+    {
+        $total = ['amount' => 0, 'payment' => 0, 'balance' => 0, 'integral' => 0];
+        try {
+            PaymentRecord::mk()->where(['order_no' => $orderNo, 'payment_status' => 1])->field([
+                'channel_type',
+                'sum(payment_amount-refund_amount)'  => 'amount',
+                'sum(used_payment-refund_payment)'   => 'payment',
+                'sum(used_balance-refund_balance)'   => 'balance',
+                'sum(used_integral-refund_integral)' => 'integral',
+            ])->group('channel_type')->select()->map(static function (PaymentRecord $item) use (&$total) {
+                $type = $item->getAttr('channel_type');
+                $total['amount'] += $item->getAttr('amount');
+                if (!in_array($type, [self::INTEGRAL, self::BALANCE])) $type = 'payment';
+                $total[$type] += $item[$type] ?? 0;
+            });
+        } catch (\Exception $exception) {
+            trace_file($exception);
+        }
+        return $total;
+    }
+
+    /**
+     * 根据支付号统计退款金额
+     * @param string $pCode
+     * @return array ['amount'=>0,'payment'=>0,'balance'=>0,'integral'=>0]
+     */
+    public static function totalRefundAmount(string $pCode): array
+    {
+        $total = ['amount' => 0, 'payment' => 0, 'balance' => 0, 'integral' => 0];
+        try {
+            PaymentRefund::mk()->where(['record_code' => $pCode, 'refund_status' => [0, 1]])->field([
+                'refund_account', 'sum(refund_amount) amount', 'sum(used_payment)' => 'payment', 'sum(used_balance)' => 'balance', 'sum(used_integral)' => 'integral',
+            ])->group('refund_account')->select()->map(static function (PaymentRefund $item) use (&$total) {
+                $type = $item->getAttr('refund_account');
+                $total['amount'] += $item->getAttr('amount');
+                if (!in_array($type, [self::INTEGRAL, self::BALANCE])) $type = 'payment';
+                $total[$type] += $item[$type] ?? 0;
+            });
+        } catch (\Exception $exception) {
+            trace_file($exception);
+        }
+        return $total;
     }
 
     /**

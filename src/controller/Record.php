@@ -110,10 +110,13 @@ class Record extends Controller
     {
         try {
             $data = $this->_vali(['code.require' => '支付单号不能为空！']);
-            $items = PaymentRecord::mq()->where(function (Query $query) {
-                $query->whereOr([['payment_status', '=', 1], ['audit_status', '>', '0']]);
-            })->where($data)->column('code,channel_code,payment_amount');
-            foreach ($items as $item) Payment::mk($item['channel_code'])->refund($item['code'], $item['payment_amount']);
+            $items = PaymentRecord::mk()->where(function (Query $query) {
+                $query->whereOr([['payment_status', '=', 1], ['audit_status', '>', 0]]);
+            })->where($data)->column('code,channel_code,payment_amount,payment_coupon');
+            foreach ($items as $item) {
+                $amount = bcsub($item['payment_amount'], $item['payment_coupon'], 2);
+                Payment::mk($item['channel_code'])->refund($item['code'], $amount);
+            }
             $this->success('退款申请成功！');
         } catch (HttpResponseException $exception) {
             throw $exception;

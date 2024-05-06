@@ -47,11 +47,9 @@ class EmptyPayment implements PaymentInterface
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
     {
         try {
-            [$data, $payCode] = [[], Payment::withPaymentCode(), $this->withUserUnid($account)];
-            $this->app->db->transaction(function () use (&$data, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount) {
-                $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
-                $data = $this->updateAction($payCode, CodeExtend::uniqidNumber(18, 'EMT'), $payAmount, '无需支付');
-            });
+            [$payCode] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
+            $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
+            $data = $this->updateAction($payCode, CodeExtend::uniqidNumber(18, 'EMT'), $payAmount, '无需支付');
             return $this->res->set(true, "订单无需支付！", $data);
         } catch (Exception $exception) {
             throw $exception;
@@ -86,17 +84,17 @@ class EmptyPayment implements PaymentInterface
      * @param string $pcode 支付单号
      * @param string $amount 退款金额
      * @param string $reason 退款原因
+     * @param ?string $rcode
      * @return array [状态, 消息]
+     * @throws Exception
      */
-    public function refund(string $pcode, string $amount, string $reason = ''): array
+    public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
         try {
-            $this->app->db->transaction(static function () use ($pcode, $amount, $reason) {
-                static::syncRefund($pcode, $rcode, $amount, $reason);
-            });
+            static::syncRefund($pcode, $rcode, $amount, $reason);
             return [1, '发起退款成功！'];
         } catch (\Exception $exception) {
-            return [0, $exception->getMessage()];
+            throw new Exception($exception->getMessage(), $exception->getCode());
         }
     }
 }

@@ -57,17 +57,18 @@ class VoucherPayment implements PaymentInterface
      * @param string $pcode 支付单号
      * @param string $amount 退款金额
      * @param string $reason 退款原因
+     * @param string|null $rcode
      * @return array [状态, 消息]
+     * @throws Exception
      */
-    public function refund(string $pcode, string $amount, string $reason = ''): array
+    public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
         try {
-            $this->app->db->transaction(static function () use ($pcode, $amount, $reason) {
-                static::syncRefund($pcode, $rcode, $amount, $reason);
-            });
+            // 记录退款
+            static::syncRefund($pcode, $rcode, $amount, $reason);
             return [1, '发起退款成功！'];
         } catch (\Exception $exception) {
-            return [$exception->getCode(), $exception->getMessage()];
+            throw new Exception($exception->getMessage(), $exception->getCode());
         }
     }
 

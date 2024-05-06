@@ -128,7 +128,7 @@ trait PaymentUsageTrait
         $model = PaymentRecord::mk()->where($map)->findOrEmpty();
         if ($model->isExists()) throw new Exception('凭证待审核！', 0);
         // 检查支付金额是否超出
-        if (floatval($payAmount) + Payment::paidAmount($orderNo) > floatval($orderAmount)) {
+        if (floatval($payAmount) + Payment::paidAmount($orderNo, true) > floatval($orderAmount)) {
             throw new Exception("支付金额溢出！");
         }
         return floatval($payAmount);
@@ -151,7 +151,7 @@ trait PaymentUsageTrait
     {
         // 检查是否已经支付
         $map = ['order_no' => $orderNo, 'payment_status' => 1];
-        $total = PaymentRecord::mk()->where($map)->sum('payment_amount');
+        $total = Payment::paidAmount($orderNo, true);
         if ($total >= floatval($orderAmount) && $orderAmount > 0) {
             throw new Exception("已经完成支付！", 1);
         }
@@ -238,22 +238,23 @@ trait PaymentUsageTrait
      */
     public static function syncRefund(string $pCode, ?string &$rCode = '', ?string $amount = null, string $reason = ''): PaymentRecord
     {
+        dump(func_get_args());
+        // 检查退款单号
+        if ($rCode && PaymentRefund::mk()->where(['code' => $pCode])->findOrEmpty()->isExists()) {
+            throw new Exception("退款单已存在！", 2);
+        }
         // 查询支付记录
-        $record = PaymentRecord::mk()->where(['code' => $pCode])->findOrEmpty();
-        if ($record->isEmpty()) throw new Exception('支付单不存在！');
+        $record = self::withPaymentByRefundTotal($pCode);
         if ($record->getAttr('payment_status') < 1) throw new Exception('支付未完成！');
-        // 统计刷新退款金额
-        $rWhere = ['record_code' => $pCode, 'refund_status' => 1];
-        $rAmount = PaymentRefund::mk()->where($rWhere)->sum('refund_amount');
-        $record->save(['refund_amount' => $rAmount, 'refund_status' => intval($rAmount > 0)]);
         // 是否需要写入退款
         if (!is_numeric($amount)) return $record->refresh();
         // 生成退款记录
         $pType = $record->getAttr('channel_type');
         $extra = ['used_payment' => $amount, 'refund_status' => 0];
         if (in_array($pType, [Payment::EMPTY, Payment::BALANCE, Payment::INTEGRAL, Payment::VOUCHER])) {
-            if ($pType === Payment::BALANCE) $extra['used_balance'] = $amount;
-            elseif ($pType === Payment::INTEGRAL) {
+            if ($pType === Payment::BALANCE) {
+                $extra['used_balance'] = $amount;
+            } elseif ($pType === Payment::INTEGRAL) {
                 $extra['used_integral'] = intval(floatval($amount) / floatval($record->getAttr('payment_amount')) * $record->getAttr('used_integral'));
             }
             $extra['refund_trade'] = CodeExtend::uniqidNumber(16, 'RT');
@@ -263,27 +264,49 @@ trait PaymentUsageTrait
             $extra['refund_time'] = date('Y-m-d H:i:s');
         }
         // 支付金额大于0，并需要创建退款记录
-        if ($record->getAttr('payment_amount') > 0 && $rAmount + floatval($amount) <= $record->getAttr('payment_amount')) {
+        dump([
+            '已支付' => $record->getAttr('payment_amount'),
+            '已退款' => $record->getAttr('refund_amount'),
+            '待退款' => $amount
+        ]);
+        if ($record->getAttr('payment_amount') >= $record->getAttr('refund_amount') + floatval($amount)) {
             PaymentRefund::mk()->save(array_merge([
                 'unid' => $record->getAttr('unid'), 'record_code' => $pCode,
                 'usid' => $record->getAttr('usid'), 'refund_amount' => $amount,
-                'code' => $rCode = Payment::withRefundCode(), 'refund_remark' => $reason,
+                'code' => $rCode = $rCode ?: Payment::withRefundCode(), 'refund_remark' => $reason,
             ], $extra));
-            // 刷新退款金额
-            $rAmount = PaymentRefund::mk()->where($rWhere)->sum('refund_amount');
+            // 同步刷新金额
+            self::withPaymentByRefundTotal($record);
         }
-        // 刷新退款金额
-        $record->save([
-            'refund_status' => 1,
-            'refund_amount' => $rAmount,
-            'audit_time'    => date('Y-m-d H:i:s'),
-            'audit_user'    => AdminService::getUserId(),
-            'audit_status'  => 0,
-            'audit_remark'  => '已申请取消支付，' . ($reason ?: '后台取消！')
-        ]);
+        // 更新模型数据
+        $record->save();
         // 触发取消支付事件
         Library::$sapp->event->trigger('PluginPaymentCancel', $record->refresh());
         return $record;
+    }
+
+    /**
+     * 获取并同步退款金额的支付单
+     * @param PaymentRecord|string $record
+     * @return PaymentRecord
+     * @throws Exception
+     */
+    protected static function withPaymentByRefundTotal($record): PaymentRecord
+    {
+        if (is_string($record)) {
+            $record = PaymentRecord::mk()->where(['code' => $record])->findOrEmpty();
+        }
+        if (!$record instanceof PaymentRecord || $record->isEmpty()) {
+            throw new Exception("无效的支付单！");
+        }
+        $total = Payment::totalRefundAmount($record->getAttr('code'));
+        return $record->appendData([
+            'refund_amount'   => $total['amount'],
+            'refund_payment'  => $total['payment'],
+            'refund_balance'  => $total['balance'],
+            'refund_integral' => $total['integral'],
+            'refund_status'   => intval($total['amount'] > 0)
+        ], true);
     }
 
     /**
