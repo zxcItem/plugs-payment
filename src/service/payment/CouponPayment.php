@@ -1,25 +1,24 @@
 <?php
 
-
 declare (strict_types=1);
 
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
+use plugin\payment\model\PaymentRecord;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\contract\PaymentUsageTrait;
-use plugin\payment\service\IntegralService;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\Response;
 
 /**
- * 账户积分支付方式
- * @class IntegralPayment
+ * 账户余额支付方式
+ * @class CouponPayment
  * @package plugin\payment\service\payment
  */
-class IntegralPayment implements PaymentInterface
+class CouponPayment implements PaymentInterface
 {
     use PaymentUsageTrait;
 
@@ -55,9 +54,9 @@ class IntegralPayment implements PaymentInterface
 
     /**
      * 发起支付退款
-     * @param string $pcode 支付单号
-     * @param string $amount 退款金额
-     * @param string $reason 退款原因
+     * @param string $pcode
+     * @param string $amount
+     * @param string $reason
      * @param ?string $rcode
      * @return array [状态, 消息]
      * @throws Exception
@@ -66,11 +65,7 @@ class IntegralPayment implements PaymentInterface
     {
         try {
             // 记录并退回
-            if (floatval($amount) <= 0) return [1, '无需退款！'];
-            $record = static::syncRefund($pcode, $rcode, $amount, $reason);
-            $remark = "来自订单 {$record->getAttr('order_no')} 退回积分";
-            $integral = floatval($amount) / floatval($record->getAttr('payment_amount')) * $record->getAttr('used_integral');
-            IntegralService::create($record->getAttr('unid'), $rcode, '账号积分退还', floatval($integral), $remark, true);
+            static::syncRefund($pcode, $rcode, $amount, $reason);
             return [1, '发起退款成功！'];
         } catch (\Exception $exception) {
             throw new Exception($exception->getMessage(), $exception->getCode());
@@ -83,33 +78,33 @@ class IntegralPayment implements PaymentInterface
      * @param string $orderNo 交易订单单号
      * @param string $orderTitle 交易订单标题
      * @param string $orderAmount 订单支付金额（元）
-     * @param string $payAmount 本次交易积分
+     * @param string $payAmount 本次交易金额
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @param string $payCoupon
+     * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
      * @throws Exception
      */
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
         try {
-            $unid = $this->withUserUnid($account);
-            $integral = IntegralService::recount($unid);
-            if ($payAmount > $integral['usable']) throw new Exception('可抵扣的积分不足');
-            $realAmount = $this->checkLeaveAmount($orderNo, sprintf('%01.2f', IntegralService::ratio(floatval($payAmount))), $orderAmount);
-            $payCode = Payment::withPaymentCode();
+            // 检查优惠券是否已使用
+            if (empty($payCoupon)) throw new Exception("无效优惠券！");
+            $where = ['payment_trade' => $payCoupon, 'refund_status' => 0];
+            $record = PaymentRecord::mk()->where($where)->findOrEmpty();
+            if ($record->isExists() && $record->getAttr('order_no') !== $payCoupon) {
+                throw new Exception("优惠券已使用！");
+            }
+            // 检查剩余金额
+            $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
             // 创建支付行为
-            $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, strval($realAmount), '', '0.00', $payAmount);
-            // 扣除积分金额
-            $payRemark = $payRemark ?: "抵扣订单 {$orderNo} 金额 {$realAmount} 元";
-            IntegralService::create($unid, "DK{$payCode}", $orderTitle, -floatval($payAmount), $payRemark, true);
+            [$payCode] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
+            $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, '', $payAmount);
             // 更新支付行为
-            $data = $this->updateAction($payCode, "DK{$payCode}", strval($realAmount), '账户积分支付');
-            // 刷新用户积分
-            IntegralService::recount($unid);
+            $data = $this->updateAction($payCode, $payCoupon, $payAmount, '使用优惠券抵扣', $payAmount);
             // 返回支付结果
-            return $this->res->set(true, '积分抵扣完成！', $data);
+            return $this->res->set(true, '优惠券抵扣完成！', $data);
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {

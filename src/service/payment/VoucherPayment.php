@@ -65,6 +65,7 @@ class VoucherPayment implements PaymentInterface
     {
         try {
             // 记录退款
+            if (floatval($amount) <= 0) return [1, '无需退款！'];
             static::syncRefund($pcode, $rcode, $amount, $reason);
             return [1, '发起退款成功！'];
         } catch (\Exception $exception) {
@@ -82,10 +83,11 @@ class VoucherPayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
+     * @param string $payCoupon
      * @return PaymentResponse
      * @throws Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
         // 订单及凭证检查
         if (empty($payImages)) throw new Exception('凭证不能为空！');

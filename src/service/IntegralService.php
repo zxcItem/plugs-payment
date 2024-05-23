@@ -148,7 +148,7 @@ abstract class IntegralService
         $data['integral_lock'] = $lock;
         $data['integral_used'] = abs($used);
         $data['integral_total'] = $total;
-        $data['integral_usable'] = $total - abs($used) - $lock;
+        $data['integral_usable'] = round($total - abs($used), 2);
         if ($isUpdate) $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
         return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $data['integral_usable']];
     }

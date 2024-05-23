@@ -49,10 +49,11 @@ class WechatPaymentV2 extends WechatPayment
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
+     * @param string $payCoupon
      * @return PaymentResponse
      * @throws Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
         try {
             $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
@@ -115,8 +116,6 @@ class WechatPaymentV2 extends WechatPayment
     public function notify(array $data = [], ?array $notify = null): Response
     {
         $notify = $notify ?: $this->payment->getNotify();
-        p($data, false, 'notify_v2');
-        p($notify, false, 'notify_v2');
         if ($data['scen'] === 'order' && $notify['result_code'] == 'SUCCESS' && $notify['return_code'] == 'SUCCESS') {
             [$pCode, $pTrade] = [$notify['out_trade_no'], $notify['transaction_id']];
             [$pAmount, $pCoupon] = [strval($notify['cash_fee'] / 100), strval($notify['coupon_fee'] / 100)];
@@ -145,12 +144,15 @@ class WechatPaymentV2 extends WechatPayment
      * @param string $pcode 支付单号
      * @param string $amount 退款金额
      * @param string $reason 退款原因
+     * @param string|null $rcode
      * @return array [状态, 消息]
+     * @throws Exception
      */
     public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
         try {
             // 记录退款
+            if (floatval($amount) <= 0) return [1, '无需退款！'];
             $record = static::syncRefund($pcode, $rcode, $amount, $reason);
             // 创建退款申请
             $options = [

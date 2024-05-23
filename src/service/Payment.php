@@ -13,6 +13,7 @@ use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\payment\AliPayment;
 use plugin\payment\service\payment\BalancePayment;
+use plugin\payment\service\payment\CouponPayment;
 use plugin\payment\service\payment\EmptyPayment;
 use plugin\payment\service\payment\IntegralPayment;
 use plugin\payment\service\payment\VoucherPayment;
@@ -32,6 +33,7 @@ abstract class Payment
 
     // 用户余额支付
     const EMPTY = 'empty';
+    const COUPON = 'coupon';
     const BALANCE = 'balance';
     const VOUCHER = 'voucher';
     const INTEGRAL = 'integral';
@@ -60,6 +62,20 @@ abstract class Payment
             'class'   => EmptyPayment::class,
             'status'  => 1,
             'account' => [],
+        ],
+        // 优惠券抵扣，只维护编号+金额
+        self::COUPON     => [
+            'name'    => '优惠券抵扣',
+            'class'   => CouponPayment::class,
+            'status'  => 1,
+            'account' => [
+                Account::WAP,
+                Account::WEB,
+                Account::WXAPP,
+                Account::WECHAT,
+                Account::IOSAPP,
+                Account::ANDROID,
+            ],
         ],
         // 余额支付，使用账户余额支付
         self::BALANCE    => [
@@ -163,7 +179,7 @@ abstract class Payment
      */
     public static function mk(string $code): PaymentInterface
     {
-        if (in_array($code, [self::EMPTY, self::BALANCE, self::INTEGRAL])) {
+        if (in_array($code, [self::EMPTY, self::COUPON, self::BALANCE, self::INTEGRAL])) {
             if (empty(self::$types[$code]['status'])) {
                 throw new Exception(self::typeName($code) . '已被禁用！');
             } else {
@@ -384,7 +400,7 @@ abstract class Payment
     {
         $map = ['order_no' => $orderNo, 'payment_status' => 1];
         $raw = new Raw($realtime ? 'payment_amount - refund_amount' : 'payment_amount');
-        return PaymentRecord::mk()->where($map)->sum($raw);
+        return round(PaymentRecord::mk()->where($map)->sum($raw), 2);
     }
 
     /**
@@ -395,7 +411,7 @@ abstract class Payment
      */
     public static function leaveAmount(string $orderNo, $orderAmount): float
     {
-        $diff = floatval($orderAmount) - self::paidAmount($orderNo, true);
+        $diff = round(floatval($orderAmount) - self::paidAmount($orderNo, true), 2);
         return $diff > 0 ? $diff : 0.00;
     }
 

@@ -128,7 +128,7 @@ trait PaymentUsageTrait
         $model = PaymentRecord::mk()->where($map)->findOrEmpty();
         if ($model->isExists()) throw new Exception('凭证待审核！', 0);
         // 检查支付金额是否超出
-        if (floatval($payAmount) + Payment::paidAmount($orderNo, true) > floatval($orderAmount)) {
+        if (round(floatval($payAmount) + Payment::paidAmount($orderNo, true), 2) > floatval($orderAmount)) {
             throw new Exception("支付金额溢出！");
         }
         return floatval($payAmount);
@@ -155,7 +155,7 @@ trait PaymentUsageTrait
         if ($total >= floatval($orderAmount) && $orderAmount > 0) {
             throw new Exception("已经完成支付！", 1);
         }
-        if ($total + floatval($payAmount) > floatval($orderAmount)) {
+        if (round($total + floatval($payAmount), 2) > floatval($orderAmount)) {
             throw new Exception('支付大于金额！', 0);
         }
         $map['code'] = $payCode;
@@ -238,7 +238,6 @@ trait PaymentUsageTrait
      */
     public static function syncRefund(string $pCode, ?string &$rCode = '', ?string $amount = null, string $reason = ''): PaymentRecord
     {
-        dump(func_get_args());
         // 检查退款单号
         if ($rCode && PaymentRefund::mk()->where(['code' => $pCode])->findOrEmpty()->isExists()) {
             throw new Exception("退款单已存在！", 2);
@@ -264,12 +263,7 @@ trait PaymentUsageTrait
             $extra['refund_time'] = date('Y-m-d H:i:s');
         }
         // 支付金额大于0，并需要创建退款记录
-        dump([
-            '已支付' => $record->getAttr('payment_amount'),
-            '已退款' => $record->getAttr('refund_amount'),
-            '待退款' => $amount
-        ]);
-        if ($record->getAttr('payment_amount') >= $record->getAttr('refund_amount') + floatval($amount)) {
+        if ($record->getAttr('payment_amount') >= round($record->getAttr('refund_amount') + floatval($amount), 2)) {
             PaymentRefund::mk()->save(array_merge([
                 'unid' => $record->getAttr('unid'), 'record_code' => $pCode,
                 'usid' => $record->getAttr('usid'), 'refund_amount' => $amount,

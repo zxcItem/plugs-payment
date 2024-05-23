@@ -65,12 +65,12 @@ class BalancePayment implements PaymentInterface
     {
         try {
             // 记录并退回
+            if (floatval($amount) <= 0) return [1, '无需退款！'];
             $record = static::syncRefund($pcode, $rcode, $amount, $reason);
             $remark = "来自订单 {$record->getAttr('order_no')} 退回余额";
             BalanceService::create($record->getAttr('unid'), $rcode, '账号余额退款', floatval($amount), $remark, true);
             return [1, '发起退款成功！'];
         } catch (\Exception $exception) {
-            dump($exception->getMessage());
             throw new Exception($exception->getMessage(), $exception->getCode());
         }
     }
@@ -85,10 +85,11 @@ class BalancePayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
+     * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
      * @throws Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
         try {
             $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);

@@ -53,10 +53,11 @@ class WechatPaymentV3 extends WechatPayment
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
+     * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
      * @throws Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
         try {
             $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
@@ -119,8 +120,6 @@ class WechatPaymentV3 extends WechatPayment
     {
         try {
             $notify = $notify ?: $this->payment->notify();
-            p($data, false, 'notify_v3');
-            p($notify, false, 'notify_v3');
             $result = empty($notify['result']) ? [] : json_decode($notify['result'], true);
             if (empty($result) || !is_array($result)) return response('error', 500);
             if ($data['scen'] === 'order' && ($result['trade_state'] ?? '') == 'SUCCESS') {
@@ -163,6 +162,7 @@ class WechatPaymentV3 extends WechatPayment
     {
         try {
             // 记录退款
+            if (floatval($amount) <= 0) return [1, '无需退款！'];
             $record = static::syncRefund($pcode, $rcode, $amount, $reason);
             // 创建退款申请
             $options = [

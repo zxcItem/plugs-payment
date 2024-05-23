@@ -60,7 +60,7 @@ class PaymentRecord extends Abs
     }
 
     /**
-     * 格式化输出时间
+     * 格式化时间
      * @param mixed $value
      * @return string
      */
@@ -69,9 +69,34 @@ class PaymentRecord extends Abs
         return $this->getCreateTimeAttr($value);
     }
 
+    /**
+     * 格式化时间
+     * @param mixed $value
+     * @return string
+     */
     public function setPaymentTimeAttr($value): string
     {
         return $this->setCreateTimeAttr($value);
+    }
+
+    /**
+     *  格式化通知
+     * @param mixed $value
+     * @return string
+     */
+    public function setPaymentNotifyAttr($value): string
+    {
+        return $this->setExtraAttr($value);
+    }
+
+    /**
+     * 格式化通知
+     * @param mixed $value
+     * @return array
+     */
+    public function getPaymentNotifyAttr($value): array
+    {
+        return $this->getExtraAttr($value);
     }
 
     /**

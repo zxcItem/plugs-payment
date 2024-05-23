@@ -76,7 +76,7 @@ class Record extends Controller
             $data['audit_time'] = date('Y-m-d H:i:s');
             $data['audit_remark'] = $data['remark'];
             $data['payment_time'] = date('Y-m-d H:i:s');
-            $data['payment_trade'] = CodeExtend::uniqidNumber(18, 'AUD');
+            $data['payment_trade'] = CodeExtend::uniqidNumber(18, 'AU');
             if (empty($data['status'])) {
                 $data['audit_status'] = 0;
                 $data['payment_status'] = 0;

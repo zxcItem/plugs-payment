@@ -159,7 +159,7 @@ abstract class BalanceService
         $data['balance_lock'] = $lock;
         $data['balance_used'] = abs($used);
         $data['balance_total'] = $total;
-        $data['balance_usable'] = $total - abs($used) - $lock;
+        $data['balance_usable'] = round($total - abs($used), 2);
         if ($isUpdate) $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
         return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $data['balance_usable']];
     }

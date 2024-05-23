@@ -71,10 +71,11 @@ class AliPayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
+     * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
      * @throws Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
         try {
             $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
@@ -137,6 +138,7 @@ class AliPayment implements PaymentInterface
      * @param string $reason
      * @param ?string $rcode
      * @return array [状态, 消息]
+     * @throws Exception
      */
     public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {

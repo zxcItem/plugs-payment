@@ -41,10 +41,11 @@ class EmptyPayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
+     * @param string $payCoupon
      * @return PaymentResponse
      * @throws Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
         try {
             [$payCode] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
@@ -91,6 +92,7 @@ class EmptyPayment implements PaymentInterface
     public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
         try {
+            if (floatval($amount) <= 0) return [1, '无需退款！'];
             static::syncRefund($pcode, $rcode, $amount, $reason);
             return [1, '发起退款成功！'];
         } catch (\Exception $exception) {
