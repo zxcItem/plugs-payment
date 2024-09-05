@@ -22,7 +22,7 @@
             "type": "plugin",
             "name": "系统支付管理",
             "cover": "iconfont iconfont-vipcard",
-            "description": "支付模块，包含：资金统计,支付配置,支付退款,积分余额等"
+            "description": "支付模块，包含：资金统计,支付配置,支付退款,支付记录,积分余额"
         },
         "think": {
             "services": [
