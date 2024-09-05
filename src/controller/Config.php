@@ -3,15 +3,11 @@
 namespace plugin\payment\controller;
 
 use plugin\account\service\Account;
-use plugin\payment\model\PaymentConfig;
+use plugin\payment\model\PluginPaymentConfig;
 use plugin\payment\service\Payment;
 use think\admin\Controller;
-use think\admin\Exception;
 use think\admin\extend\CodeExtend;
 use think\admin\helper\QueryHelper;
-use think\db\exception\DataNotFoundException;
-use think\db\exception\DbException;
-use think\db\exception\ModelNotFoundException;
 
 /**
  * 支付配置管理
@@ -25,14 +21,14 @@ class Config extends Controller
      * 支付配置管理
      * @auth true
      * @menu true
-     * @throws DataNotFoundException
-     * @throws DbException
-     * @throws ModelNotFoundException
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
      */
     public function index()
     {
         $this->type = $this->get['type'] ?? 'index';
-        PaymentConfig::mQuery()->layTable(function () {
+        PluginPaymentConfig::mQuery()->layTable(function () {
             $this->title = '支付配置管理';
             $this->types = Payment::types(1);
         }, function (QueryHelper $query) {
@@ -65,7 +61,7 @@ class Config extends Controller
     public function add()
     {
         $this->title = '添加支付配置';
-        PaymentConfig::mForm('form');
+        PluginPaymentConfig::mForm('form');
     }
 
     /**
@@ -75,7 +71,7 @@ class Config extends Controller
     public function edit()
     {
         $this->title = '编辑支付配置';
-        PaymentConfig::mForm('form');
+        PluginPaymentConfig::mForm('form');
     }
 
     /**
@@ -107,7 +103,7 @@ class Config extends Controller
             if (empty($data['cover'])) $this->error('请上传支付图标！');
             // 保存配置参数
             $data['content'] = $this->request->post();
-            $fields = PaymentConfig::mk()->getTableFields();
+            $fields = PluginPaymentConfig::mk()->getTableFields();
             foreach ($data['content'] as $k => $v) {
                 if (in_array($k, $fields) || $v === '') unset($data['content'][$k]);
             }
@@ -132,7 +128,7 @@ class Config extends Controller
      */
     public function state()
     {
-        PaymentConfig::mSave($this->_vali([
+        PluginPaymentConfig::mSave($this->_vali([
             'status.in:0,1'  => '状态值范围异常！',
             'status.require' => '状态值不能为空！',
         ]));
@@ -144,18 +140,18 @@ class Config extends Controller
      */
     public function remove()
     {
-        PaymentConfig::mDelete();
+        PluginPaymentConfig::mDelete();
     }
 
     /**
      * 配置支付方式
      * @auth true
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function types()
     {
         $this->types = Payment::types();
-        $this->config = sysdata('payment.config');
+        $this->config = sysdata('plugin.payment.config');
         if ($this->request->isGet()) {
             $this->fetch();
         } else {
@@ -163,7 +159,7 @@ class Config extends Controller
             if (($post['integral'] ?? 0) < 1) {
                 $this->error('兑换积分不能少于1积分！');
             }
-            sysdata('payment.config', $post);
+            sysdata('plugin.payment.config', $post);
             foreach ($this->types as $k => $v) {
                 Payment::set($k, intval(in_array($k, $post['types'])));
             }

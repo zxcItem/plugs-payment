@@ -5,7 +5,7 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\model\PaymentRecord;
+use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\contract\PaymentUsageTrait;
@@ -14,7 +14,7 @@ use think\admin\Exception;
 use think\Response;
 
 /**
- * 账户余额支付方式
+ * 用户优惠券抵扣
  * @class CouponPayment
  * @package plugin\payment\service\payment
  */
@@ -45,7 +45,7 @@ class CouponPayment implements PaymentInterface
      * 支付通知处理
      * @param array $data
      * @param ?array $notify
-     * @return Response
+     * @return \think\Response
      */
     public function notify(array $data = [], ?array $notify = null): Response
     {
@@ -59,7 +59,7 @@ class CouponPayment implements PaymentInterface
      * @param string $reason
      * @param ?string $rcode
      * @return array [状态, 消息]
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
@@ -84,7 +84,7 @@ class CouponPayment implements PaymentInterface
      * @param string $payImages 支付凭证图片
      * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
@@ -92,7 +92,7 @@ class CouponPayment implements PaymentInterface
             // 检查优惠券是否已使用
             if (empty($payCoupon)) throw new Exception("无效优惠券！");
             $where = ['payment_trade' => $payCoupon, 'refund_status' => 0];
-            $record = PaymentRecord::mk()->where($where)->findOrEmpty();
+            $record = PluginPaymentRecord::mk()->where($where)->findOrEmpty();
             if ($record->isExists() && $record->getAttr('order_no') !== $payCoupon) {
                 throw new Exception("优惠券已使用！");
             }

@@ -5,32 +5,23 @@ declare (strict_types=1);
 namespace plugin\payment\model;
 
 use plugin\account\model\Abs;
-use plugin\account\model\AccountUser;
+use plugin\account\model\PluginAccountUser;
 use think\model\relation\HasOne;
 
 /**
- * 用户余额模型
+ * 用户积分模型
+ * @class PluginPaymentIntegral
+ * @package plugin\payment\model
  */
-class PaymentIntegral extends Abs
+class PluginPaymentIntegral extends Abs
 {
     /**
-     * 余额扩展数据
-     * @var array[]
-     */
-    public static $Types = [
-        ['value' => '充值积分', 'amount' => 0, 'name' => 'integral_total'],
-        ['value' => '锁定积分', 'amount' => 0, 'name' => 'integral_lock'],
-        ['value' => '剩余积分', 'amount' => 0, 'name' => 'integral_usable'],
-        ['value' => '支出积分', 'amount' => 0, 'name' => 'integral_used'],
-    ];
-
-    /**
      * 关联用户数据
-     * @return HasOne
+     * @return \think\model\relation\HasOne
      */
     public function user(): HasOne
     {
-        return $this->hasOne(AccountUser::class, 'id', 'unid');
+        return $this->hasOne(PluginAccountUser::class, 'id', 'unid');
     }
 
     /**

@@ -4,7 +4,7 @@ declare (strict_types=1);
 
 namespace plugin\payment;
 
-use plugin\payment\command\Trans;
+use plugin\account\Service as AccountService;
 use think\admin\Plugin;
 
 
@@ -28,41 +28,23 @@ class Service extends Plugin
     protected $package = 'xiaochao/plugs-payment';
 
     /**
-     * 插件服务注册
-     * @return void
-     */
-    public function register(): void
-    {
-        $this->commands([Trans::class]);
-    }
-
-    /**
      * 支付模块菜单配置
      * @return array[]
      */
     public static function menu(): array
     {
         $code = app(static::class)->appCode;
-        // 设置插件菜单
-        return [
+        return array_merge(AccountService::menu(), [
             [
                 'name' => '支付管理',
                 'subs' => [
-                    ['name' => '支付配置管理', 'icon' => 'layui-icon layui-icon-user', 'node' => "{$code}/config/index"],
+                    ['name' => '支付配置管理', 'icon' => 'layui-icon layui-icon-set', 'node' => "{$code}/config/index"],
                     ['name' => '支付行为管理', 'icon' => 'layui-icon layui-icon-edge', 'node' => "{$code}/record/index"],
                     ['name' => '支付退款管理', 'icon' => 'layui-icon layui-icon-firefox', 'node' => "{$code}/refund/index"],
+                    ['name' => '余额明细管理', 'icon' => 'layui-icon layui-icon-rmb', 'node' => "{$code}/balance/index"],
+                    ['name' => '积分明细管理', 'icon' => 'layui-icon layui-icon-diamond', 'node' => "{$code}/integral/index"],
                 ],
-            ],
-            [
-                'name' => '资金管理',
-                'subs' => [
-                    ['name' => '资金统计报表', 'icon' => 'layui-icon layui-icon-chart', 'node' => "{$code}/portal/fund"],
-                    ['name' => '用户资产管理', 'icon' => 'layui-icon layui-icon-dollar', 'node' => "{$code}/master/index"],
-                    ['name' => '用户余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/balance/index"],
-                    ['name' => '用户积分管理', 'icon' => 'layui-icon layui-icon-find-fill', 'node' => "{$code}/integral/index"],
-                    ['name' => '用户提现管理', 'icon' => 'layui-icon layui-icon-dollar', 'node' => "{$code}/transfer/index"],
-                ],
-            ],
-        ];
+            ]
+        ]);
     }
 }

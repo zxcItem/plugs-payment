@@ -41,9 +41,9 @@ class EmptyPayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @param string $payCoupon
+     * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
@@ -73,7 +73,7 @@ class EmptyPayment implements PaymentInterface
      * 支付通知处理
      * @param array $data
      * @param ?array $notify
-     * @return Response
+     * @return \think\Response
      */
     public function notify(array $data = [], ?array $notify = null): Response
     {
@@ -82,12 +82,12 @@ class EmptyPayment implements PaymentInterface
 
     /**
      * 发起支付退款
-     * @param string $pcode 支付单号
-     * @param string $amount 退款金额
-     * @param string $reason 退款原因
+     * @param string $pcode
+     * @param string $amount
+     * @param string $reason
      * @param ?string $rcode
      * @return array [状态, 消息]
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {

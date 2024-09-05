@@ -1,8 +1,7 @@
 {
     "type": "think-admin-plugin",
     "name": "xiaochao/plugs-payment",
-    "license": "MIT",
-    "description": "PlugsPayment for ThinkAdmin",
+    "version": "dev-master",
     "authors": [
         {
             "name": "叶落无痕",
@@ -11,11 +10,6 @@
     ],
     "require": {
         "php": ">7.1",
-        "ext-gd": "*",
-        "ext-curl": "*",
-        "ext-json": "*",
-        "zoujingli/think-install": "^1.0|@dev",
-        "zoujingli/think-library": "^6.1|@dev",
         "xiaochao/plugs-account": "dev-master"
     },
     "autoload": {
@@ -26,7 +20,8 @@
     "extra": {
         "config": {
             "type": "plugin",
-            "name": "系统支付管理"
+            "name": "系统支付管理",
+            "description": "支付系统模块，包含：支付配置,支付记录,支付退款,积分余额"
         },
         "think": {
             "services": [

@@ -4,16 +4,13 @@ declare (strict_types=1);
 
 namespace plugin\payment\controller;
 
-use plugin\account\model\AccountUser;
-use plugin\payment\model\PaymentRecord;
+use plugin\account\model\PluginAccountUser;
+use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\service\Payment;
 use think\admin\Controller;
 use think\admin\extend\CodeExtend;
 use think\admin\helper\QueryHelper;
 use think\admin\service\AdminService;
-use think\db\exception\DataNotFoundException;
-use think\db\exception\DbException;
-use think\db\exception\ModelNotFoundException;
 use think\db\Query;
 use think\exception\HttpResponseException;
 
@@ -29,17 +26,17 @@ class Record extends Controller
      * @auth true
      * @menu true
      * @return void
-     * @throws DataNotFoundException
-     * @throws DbException
-     * @throws ModelNotFoundException
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
      */
     public function index()
     {
         $this->mode = $this->get['open_type'] ?? 'index';
-        PaymentRecord::mQuery()->layTable(function () {
+        PluginPaymentRecord::mQuery()->layTable(function () {
             if ($this->mode === 'index') $this->title = '支付行为管理';
         }, static function (QueryHelper $query) {
-            $db = AccountUser::mQuery()->like('email|nickname|username|phone#userinfo')->db();
+            $db = PluginAccountUser::mQuery()->like('email|nickname|username|phone#userinfo')->db();
             if ($db->getOptions('where')) $query->whereRaw("unid in {$db->field('id')->buildSql()}");
             $query->with(['user'])->like('order_no|order_name#orderinfo')->dateBetween('create_time');
         });
@@ -53,7 +50,7 @@ class Record extends Controller
     public function audit()
     {
         if ($this->request->isGet()) {
-            PaymentRecord::mForm('audit');
+            PluginPaymentRecord::mForm('audit');
         } else {
             $data = $this->_vali([
                 'id.require'      => '支付号不能为空！',
@@ -64,7 +61,7 @@ class Record extends Controller
             if (intval($data['status']) === 1) {
                 $this->error('请选择通过或驳回！');
             }
-            $action = PaymentRecord::mk()->findOrEmpty($data['id']);
+            $action = PluginPaymentRecord::mk()->findOrEmpty($data['id']);
             if ($action->isEmpty()) $this->error('支付记录不存在！');
             if ($action->getAttr('channel_type') !== Payment::VOUCHER) {
                 $this->error('无需审核操作！');
@@ -92,7 +89,6 @@ class Record extends Controller
                     $this->success('凭证审核驳回！');
                 } else {
                     $this->app->event->trigger('PluginPaymentSuccess', $action->refresh());
-                    $this->app->event->trigger('PluginMallPaymentSuccess', $action->refresh());
                     $this->success('凭证审核通过！');
                 }
             } else {
@@ -110,7 +106,7 @@ class Record extends Controller
     {
         try {
             $data = $this->_vali(['code.require' => '支付单号不能为空！']);
-            $items = PaymentRecord::mk()->where(function (Query $query) {
+            $items = PluginPaymentRecord::mk()->where(function (Query $query) {
                 $query->whereOr([['payment_status', '=', 1], ['audit_status', '>', 0]]);
             })->where($data)->column('code,channel_code,payment_amount,payment_coupon');
             foreach ($items as $item) {
@@ -133,11 +129,10 @@ class Record extends Controller
     public function notify()
     {
         $data = $this->_vali(['code.require' => '支付单号不能为空！']);
-        $record = PaymentRecord::mk()->where(['code' => $data['code']])->findOrEmpty();
+        $record = PluginPaymentRecord::mk()->where(['code' => $data['code']])->findOrEmpty();
         if ($record->isEmpty()) $this->error('支付单号异常！');
         if (empty($record->getAttr('payment_status'))) $this->error('未完成支付！');
         $this->app->event->trigger('PluginPaymentSuccess', $record);
-        $this->app->event->trigger('PluginMallPaymentSuccess', $record);
         $this->success('重新触发支付行为！');
     }
 }

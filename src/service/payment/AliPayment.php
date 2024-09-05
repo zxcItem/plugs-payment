@@ -14,8 +14,6 @@ use plugin\payment\service\contract\PaymentUsageTrait;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\Response;
-use WeChat\Exceptions\InvalidResponseException;
-use WeChat\Exceptions\LocalCacheException;
 
 /**
  * 支付宝支付配置
@@ -73,7 +71,7 @@ class AliPayment implements PaymentInterface
      * @param string $payImages 支付凭证图片
      * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
@@ -114,8 +112,8 @@ class AliPayment implements PaymentInterface
      * 支付通知处理
      * @param array $data
      * @param ?array $notify
-     * @return Response
-     * @throws InvalidResponseException
+     * @return \think\Response
+     * @throws \WeChat\Exceptions\InvalidResponseException
      */
     public function notify(array $data = [], ?array $notify = null): Response
     {
@@ -138,14 +136,15 @@ class AliPayment implements PaymentInterface
      * @param string $reason
      * @param ?string $rcode
      * @return array [状态, 消息]
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
         try {
             // 记录退款数据
+            if (floatval($amount) <= 0) return [1, '无需退款！'];
             static::syncRefund($pcode, $rcode, $amount, $reason);
-            // 创建退款申请
+            // 发起退款申请
             App::instance($this->config)->refund([
                 'out_trade_no'   => $pcode,
                 'out_request_no' => $rcode,
@@ -161,8 +160,8 @@ class AliPayment implements PaymentInterface
      * 查询订单数据
      * @param string $pcode
      * @return array
-     * @throws InvalidResponseException
-     * @throws LocalCacheException
+     * @throws \WeChat\Exceptions\InvalidResponseException
+     * @throws \WeChat\Exceptions\LocalCacheException
      */
     public function query(string $pcode): array
     {

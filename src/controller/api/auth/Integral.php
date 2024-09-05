@@ -5,13 +5,13 @@ declare (strict_types=1);
 namespace plugin\payment\controller\api\auth;
 
 use plugin\account\controller\api\Auth;
-use plugin\payment\model\PaymentIntegral;
+use plugin\payment\model\PluginPaymentIntegral;
 use think\admin\helper\QueryHelper;
 
 /**
  * 积分数据接口
  * @class Integral
- * @package plugin\payment\controller\api\auth;
+ * @package plugin\payment\controller\api\auth
  */
 class Integral extends Auth
 {
@@ -21,7 +21,7 @@ class Integral extends Auth
      */
     public function get()
     {
-        PaymentIntegral::mQuery(null, function (QueryHelper $query) {
+        PluginPaymentIntegral::mQuery(null, function (QueryHelper $query) {
             $query->where(['unid' => $this->unid, 'deleted' => 0, 'cancel' => 0])->order('id desc');
             $this->success('获取积分记录！', $query->page(intval(input('page', 1)), false, false, 20));
         });

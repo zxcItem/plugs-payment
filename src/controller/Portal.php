@@ -2,8 +2,8 @@
 
 namespace plugin\payment\controller;
 
-use plugin\payment\model\PaymentBalance;
-use plugin\payment\model\PaymentIntegral;
+use plugin\payment\model\PluginPaymentBalance;
+use plugin\payment\model\PluginPaymentIntegral;
 use think\admin\Controller;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
@@ -30,21 +30,21 @@ class Portal extends Controller
     public function fund()
     {
         $this->title = '积分余额统计';
-        $this->balanceTotal = PaymentBalance::mk()->whereRaw("amount>0")->sum('amount');
-        $this->balanceCostTotal = PaymentBalance::mk()->whereRaw("amount<0")->sum('amount');
-        $this->integralTotal = PaymentIntegral::mk()->whereRaw("amount>0")->sum('amount');
-        $this->integralCostTotal = PaymentIntegral::mk()->whereRaw("amount<0")->sum('amount');
+        $this->balanceTotal = PluginPaymentBalance::mk()->whereRaw("amount>0")->sum('amount');
+        $this->balanceCostTotal = PluginPaymentBalance::mk()->whereRaw("amount<0")->sum('amount');
+        $this->integralTotal = PluginPaymentIntegral::mk()->whereRaw("amount>0")->sum('amount');
+        $this->integralCostTotal = PluginPaymentIntegral::mk()->whereRaw("amount<0")->sum('amount');
 
         // 近十天的用户及交易趋势
         if (empty($this->accountAmount = $this->app->cache->get('accountAmount', []))) {
             $field = ['count(1)' => 'count', 'substr(create_time,1,10)' => 'mday'];
 
             // 统计余额数据
-            $model = PaymentBalance::mk()->field($field + ['sum(case when amount>0 then amount else 0 end)' => 'amount1', 'sum(case when amount<0 then amount else 0 end)' => 'amount2']);
+            $model = PluginPaymentBalance::mk()->field($field + ['sum(case when amount>0 then amount else 0 end)' => 'amount1', 'sum(case when amount<0 then amount else 0 end)' => 'amount2']);
             $balances = $model->whereTime('create_time', '-10 days')->where(['deleted' => 0])->group('mday')->select()->column(null, 'mday');
 
             // 统计积分数据
-            $model = PaymentIntegral::mk()->field($field + ['sum(case when amount>0 then amount else 0 end)' => 'amount1', 'sum(case when amount<0 then amount else 0 end)' => 'amount2']);
+            $model = PluginPaymentIntegral::mk()->field($field + ['sum(case when amount>0 then amount else 0 end)' => 'amount1', 'sum(case when amount<0 then amount else 0 end)' => 'amount2']);
             $integrals = $model->whereTime('create_time', '-10 days')->where(['deleted' => 0])->group('mday')->select()->column(null, 'mday');
 
             // 数据格式转换
@@ -55,8 +55,8 @@ class Portal extends Controller
                 $date = date('Y-m-d', strtotime("-{$i}days"));
                 $this->accountAmount[] = [
                     '当天日期' => date('m-d', strtotime("-{$i}days")),
-                    '剩余余额' => PaymentBalance::mk()->whereRaw("create_time<='{$date} 23:59:59' and deleted=0")->sum('amount'),
-                    '剩余积分' => PaymentIntegral::mk()->whereRaw("create_time<='{$date} 23:59:59' and deleted=0")->sum('amount'),
+                    '剩余余额' => PluginPaymentBalance::mk()->whereRaw("create_time<='{$date} 23:59:59' and deleted=0")->sum('amount'),
+                    '剩余积分' => PluginPaymentIntegral::mk()->whereRaw("create_time<='{$date} 23:59:59' and deleted=0")->sum('amount'),
                     '充值余额' => ($balances[$date] ?? [])['amount1'] ?? 0,
                     '消费余额' => ($balances[$date] ?? [])['amount2'] ?? 0,
                     '充值积分' => ($integrals[$date] ?? [])['amount1'] ?? 0,

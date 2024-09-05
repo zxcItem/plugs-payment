@@ -1,20 +1,17 @@
 <?php
 
-
 declare (strict_types=1);
 
 namespace plugin\payment\service\payment\wechat;
 
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\model\PaymentRefund;
+use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\Payment;
 use plugin\payment\service\payment\WechatPayment;
 use think\admin\Exception;
 use think\Response;
-use WeChat\Exceptions\InvalidResponseException;
-use WeChat\Exceptions\LocalCacheException;
 use WePay\Order;
 use WePay\Refund;
 
@@ -49,9 +46,9 @@ class WechatPaymentV2 extends WechatPayment
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @param string $payCoupon
+     * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
     {
@@ -73,7 +70,13 @@ class WechatPaymentV2 extends WechatPayment
             $info = $this->payment->create($data);
             if ($info['return_code'] === 'SUCCESS' && $info['result_code'] === 'SUCCESS') {
                 // 支付参数过滤
-                $param = isset($info['prepay_id']) ? $this->payment->jsapiParams($info['prepay_id']) : $info;
+                if ($this->cfgType === Payment::WECHAT_APP) {
+                    $param = $this->payment->appParams($info['prepay_id']);
+                } elseif (isset($info['prepay_id'])) {
+                    $param = $this->payment->jsapiParams($info['prepay_id']);
+                } else {
+                    $param = $info;
+                }
                 // 创建支付记录
                 $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
                 // 返回支付参数
@@ -91,8 +94,8 @@ class WechatPaymentV2 extends WechatPayment
      * 查询微信支付订单
      * @param string $pcode 支付号
      * @return array
-     * @throws InvalidResponseException
-     * @throws LocalCacheException
+     * @throws \WeChat\Exceptions\InvalidResponseException
+     * @throws \WeChat\Exceptions\LocalCacheException
      */
     public function query(string $pcode): array
     {
@@ -109,22 +112,23 @@ class WechatPaymentV2 extends WechatPayment
      * 支付通知处理
      * @param array $data
      * @param ?array $notify
-     * @return Response
-     * @throws InvalidResponseException
-     * @throws Exception
+     * @return \think\Response
+     * @throws \WeChat\Exceptions\InvalidResponseException
+     * @throws \think\admin\Exception
      */
     public function notify(array $data = [], ?array $notify = null): Response
     {
         $notify = $notify ?: $this->payment->getNotify();
+        p($notify, false, 'notify_v2');
         if ($data['scen'] === 'order' && $notify['result_code'] == 'SUCCESS' && $notify['return_code'] == 'SUCCESS') {
             [$pCode, $pTrade] = [$notify['out_trade_no'], $notify['transaction_id']];
-            [$pAmount, $pCoupon] = [strval($notify['cash_fee'] / 100), strval($notify['coupon_fee'] / 100)];
+            [$pAmount, $pCoupon] = [strval($notify['cash_fee'] / 100), strval(($notify['coupon_fee'] ?? 0) / 100)];
             if (!$this->updateAction($pCode, $pTrade, $pAmount, null, $pCoupon, $notify)) {
                 return xml(['return_code' => 'ERROR', 'return_msg' => '数据更新失败']);
             }
         } elseif ($data['scen'] === 'refund' && ($notify['refund_status'] ?? '') == 'SUCCESS') {
             if ($data['order'] !== $notify['out_refund_no']) return response('error', 500);
-            $refund = PaymentRefund::mk()->where(['code' => $notify['out_refund_no']])->findOrEmpty();
+            $refund = PluginPaymentRefund::mk()->where(['code' => $notify['out_refund_no']])->findOrEmpty();
             if ($refund->isEmpty()) return xml(['return_code' => 'ERROR', 'return_msg' => '数据更新失败']);
             $refund->save([
                 'refund_time'    => date('Y-m-d H:i:s', strtotime($notify['success_time'])),
@@ -141,12 +145,12 @@ class WechatPaymentV2 extends WechatPayment
 
     /**
      * 发起支付退款
-     * @param string $pcode 支付单号
-     * @param string $amount 退款金额
-     * @param string $reason 退款原因
-     * @param string|null $rcode
+     * @param string $pcode
+     * @param string $amount
+     * @param string $reason
+     * @param ?string $rcode
      * @return array [状态, 消息]
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
@@ -154,7 +158,7 @@ class WechatPaymentV2 extends WechatPayment
             // 记录退款
             if (floatval($amount) <= 0) return [1, '无需退款！'];
             $record = static::syncRefund($pcode, $rcode, $amount, $reason);
-            // 创建退款申请
+            // 发起退款申请
             $options = [
                 'out_trade_no'  => $pcode,
                 'out_refund_no' => $rcode,

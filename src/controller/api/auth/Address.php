@@ -5,10 +5,7 @@ declare (strict_types=1);
 namespace plugin\payment\controller\api\auth;
 
 use plugin\account\controller\api\Auth;
-use plugin\payment\model\PaymentAddress;
-use think\db\exception\DataNotFoundException;
-use think\db\exception\DbException;
-use think\db\exception\ModelNotFoundException;
+use plugin\payment\model\PluginPaymentAddress;
 
 /**
  * 用户收货地址管理
@@ -30,7 +27,7 @@ class Address extends Auth
     /**
      * 修改地址
      * @return void
-     * @throws DbException
+     * @throws \think\db\exception\DbException
      */
     public function set()
     {
@@ -54,7 +51,7 @@ class Address extends Auth
         if (empty($data['id'])) {
             unset($data['id']);
             $map = ['unid' => $this->unid, 'deleted' => 0];
-            if (PaymentAddress::mk()->where($map)->count() >= 10) {
+            if (PluginPaymentAddress::mk()->where($map)->count() >= 10) {
                 $this->error('最多10个地址！');
             }
         }
@@ -72,9 +69,9 @@ class Address extends Auth
 
     /**
      * 获取地址
-     * @throws DataNotFoundException
-     * @throws DbException
-     * @throws ModelNotFoundException
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
      */
     public function get()
     {
@@ -126,7 +123,7 @@ class Address extends Auth
      */
     private function withModel($map = [])
     {
-        $model = PaymentAddress::mk()->withoutField('deleted');
+        $model = PluginPaymentAddress::mk()->withoutField('deleted');
         return $model->where($map)->where(['unid' => $this->unid, 'deleted' => 0]);
     }
 
@@ -135,9 +132,9 @@ class Address extends Auth
      * @param integer $id 地址编号
      * @param integer $type 是否默认
      * @param boolean $force 强制更新
-     * @return PaymentAddress
+     * @return PluginPaymentAddress
      */
-    private function withDefault(int $id = 0, int $type = 1, bool $force = false): PaymentAddress
+    private function withDefault(int $id = 0, int $type = 1, bool $force = false): PluginPaymentAddress
     {
         $model = $this->withModel(['id' => $id])->findOrEmpty();
         if ($model->isExists() && intval($model->getAttr('type')) !== $type) {

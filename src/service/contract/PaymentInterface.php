@@ -1,6 +1,5 @@
 <?php
 
-
 declare (strict_types=1);
 
 namespace plugin\payment\service\contract;
@@ -48,7 +47,7 @@ interface PaymentInterface
      * 支付通知处理
      * @param array $data
      * @param ?array $notify
-     * @return Response
+     * @return \think\Response
      */
     public function notify(array $data = [], ?array $notify = null): Response;
 

@@ -4,13 +4,11 @@ declare (strict_types=1);
 
 namespace plugin\payment\model;
 
-use plugin\account\model\Abs;
-
 /**
- * 用户地址模型
- * @class PaymentAddress
+ * 用户余额模型
+ * @class PluginPaymentBalance
  * @package plugin\payment\model
  */
-class PaymentAddress extends Abs
+class PluginPaymentBalance extends PluginPaymentIntegral
 {
 }

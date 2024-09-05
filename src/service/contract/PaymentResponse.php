@@ -1,6 +1,5 @@
 <?php
 
-
 declare (strict_types=1);
 
 namespace plugin\payment\service\contract;
@@ -67,7 +66,7 @@ class PaymentResponse extends \stdClass
      * @param string $message
      * @param array $record
      * @param array $params
-     * @return PaymentResponse
+     * @return \plugin\payment\service\contract\PaymentResponse
      */
     public static function mk(bool $status = true, string $message = "创建支付成功", array $record = [], array $params = []): PaymentResponse
     {

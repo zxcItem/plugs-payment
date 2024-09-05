@@ -1,11 +1,5 @@
 {extend name="table"}
 
-{block name="button"}
-<!--{if auth("queue")}-->
-<!--<button class='layui-btn layui-btn-sm layui-btn-primary' data-queue='{:url("queue")}'>刷新领取次数</button>-->
-<!--{/if}-->
-{/block}
-
 {block name="content"}
 <div class="{$mode==='modal'?'':'think-box-shadow'}">
     {include file='record/index_search'}
@@ -133,5 +127,6 @@
     <!-- <a class="layui-btn layui-btn-sm layui-disabled">无需操作</a>-->
     {{#}}}
     <!--{/if}-->
+
 </script>
 {/block}

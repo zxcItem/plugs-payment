@@ -5,34 +5,34 @@ declare (strict_types=1);
 namespace plugin\payment\model;
 
 use plugin\account\model\Abs;
-use plugin\account\model\AccountBind;
-use plugin\account\model\AccountUser;
+use plugin\account\model\PluginAccountBind;
+use plugin\account\model\PluginAccountUser;
 use plugin\payment\service\Payment;
 use think\model\relation\HasOne;
 
 /**
  * 用户支付行为模型
- * @class PaymentRecord
+ * @class PluginPaymentRecord
  * @package plugin\payment\model
  */
-class PaymentRecord extends Abs
+class PluginPaymentRecord extends Abs
 {
     /**
      * 关联用户数据
-     * @return HasOne
+     * @return \think\model\relation\HasOne
      */
     public function user(): HasOne
     {
-        return $this->hasOne(AccountUser::class, 'id', 'unid');
+        return $this->hasOne(PluginAccountUser::class, 'id', 'unid');
     }
 
     /**
      * 关联客户端数据
-     * @return HasOne
+     * @return \think\model\relation\HasOne
      */
     public function device(): HasOne
     {
-        return $this->hasOne(AccountBind::class, 'id', 'usid');
+        return $this->hasOne(PluginAccountBind::class, 'id', 'usid');
     }
 
     /**
@@ -54,13 +54,18 @@ class PaymentRecord extends Abs
         return $this->getCreateTimeAttr($value);
     }
 
+    /**
+     * 格式化时间
+     * @param mixed $value
+     * @return string
+     */
     public function setAuditTimeAttr($value): string
     {
         return $this->setCreateTimeAttr($value);
     }
 
     /**
-     * 格式化时间
+     * 格式化输出时间
      * @param mixed $value
      * @return string
      */

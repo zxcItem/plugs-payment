@@ -6,16 +6,14 @@ declare (strict_types=1);
 namespace plugin\payment\service\contract;
 
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\model\PaymentRecord;
-use plugin\payment\model\PaymentRefund;
+use plugin\payment\model\PluginPaymentRecord;
+use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
 use think\admin\Library;
 use think\admin\service\AdminService;
 use think\App;
-use WeChat\Exceptions\InvalidResponseException;
-use WeChat\Exceptions\LocalCacheException;
 
 /**
  * 支付方式公共操作
@@ -26,7 +24,7 @@ trait PaymentUsageTrait
 {
     /**
      * 当前应用对象
-     * @var App
+     * @var \think\App
      */
     protected $app;
 
@@ -62,12 +60,12 @@ trait PaymentUsageTrait
 
     /**
      * 支付方式构造函数
-     * @param App $app
+     * @param \think\App $app
      * @param string $code 配置编码
      * @param string $type 配置类型
      * @param array $params 配置参数
-     * @throws InvalidResponseException
-     * @throws LocalCacheException
+     * @throws \WeChat\Exceptions\InvalidResponseException
+     * @throws \WeChat\Exceptions\LocalCacheException
      */
     public function __construct(App $app, string $code, string $type, array $params)
     {
@@ -99,11 +97,11 @@ trait PaymentUsageTrait
      * @param string $code
      * @param string $type
      * @param array $params
-     * @return PaymentInterface
+     * @return \plugin\payment\service\contract\PaymentInterface
      */
     public static function mk(string $code, string $type, array $params): PaymentInterface
     {
-        /** @var PaymentInterface */
+        /** @var \plugin\payment\service\contract\PaymentInterface */
         return app(static::class, ['code' => $code, 'type' => $type, 'params' => $params]);
     }
 
@@ -119,13 +117,13 @@ trait PaymentUsageTrait
      * @param mixed $payAmount
      * @param mixed $orderAmount
      * @return float
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     protected function checkLeaveAmount($orderNo, $payAmount, $orderAmount): float
     {
         // 检查未审核的记录
         $map = ['order_no' => $orderNo, 'audit_status' => 1];
-        $model = PaymentRecord::mk()->where($map)->findOrEmpty();
+        $model = PluginPaymentRecord::mk()->where($map)->findOrEmpty();
         if ($model->isExists()) throw new Exception('凭证待审核！', 0);
         // 检查支付金额是否超出
         if (round(floatval($payAmount) + Payment::paidAmount($orderNo, true), 2) > floatval($orderAmount)) {
@@ -145,7 +143,7 @@ trait PaymentUsageTrait
      * @param string $usedBalance 使用余额
      * @param string $usedIntegral 使用积分
      * @return array
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     protected function createAction(string $orderNo, string $orderTitle, string $orderAmount, string $payCode, string $payAmount, string $payImages = '', string $usedBalance = '0.00', string $usedIntegral = '0.00'): array
     {
@@ -159,8 +157,8 @@ trait PaymentUsageTrait
             throw new Exception('支付大于金额！', 0);
         }
         $map['code'] = $payCode;
-        if (($model = PaymentRecord::mk()->where($map)->findOrEmpty())->isExists()) {
-            throw new Exception("已经完成支付！", 1);
+        if (($model = PluginPaymentRecord::mk()->where($map)->findOrEmpty())->isExists()) {
+            throw new Exception("已经完成支付2", 1);
         }
         // 写入订单支付行为
         $model->save([
@@ -191,20 +189,19 @@ trait PaymentUsageTrait
 
     /**
      * 更新支付行为记录
-     * * @param string $pCode 商户订单单号
-     * * @param string $pTrade 平台交易单号
-     * * @param string $pAmount 实际支付金额
-     * * @param string|null $pRemark 平台支付备注
-     * * @param string|null $pCoupon 优惠券金额
-     * * @param array|null $pNotify 支付通知数据
-     * * @return array|false
+     * @param string $pCode 商户订单单号
+     * @param string $pTrade 平台交易单号
+     * @param string $pAmount 实际支付金额
+     * @param string|null $pRemark 平台支付备注
+     * @param string|null $pCoupon 优惠券金额
+     * @param array|null $pNotify 支付通知数据
+     * @return array|false
      */
     protected function updateAction(string $pCode, string $pTrade, string $pAmount, ?string $pRemark = '在线支付', ?string $pCoupon = null, ?array $pNotify = null)
     {
         // 更新支付记录
         $map = ['code' => $pCode, 'channel_code' => $this->cfgCode, 'channel_type' => $this->cfgType];
-        if (($model = PaymentRecord::mk()->where($map)->findOrEmpty())->isEmpty()) return false;
-
+        if (($model = PluginPaymentRecord::mk()->where($map)->findOrEmpty())->isEmpty()) return false;
         $data = [
             'code'           => $pCode,
             'channel_code'   => $this->cfgCode,
@@ -221,8 +218,6 @@ trait PaymentUsageTrait
         $model->save($data);
         // 触发支付成功事件
         $this->app->event->trigger('PluginPaymentSuccess', $model->refresh());
-        $this->app->event->trigger('PluginMallPaymentSuccess', $model->refresh());
-
         // 更新记录状态
         return $model->toArray();
     }
@@ -233,13 +228,13 @@ trait PaymentUsageTrait
      * @param ?string $rCode 退款单号&引用
      * @param ?string $amount 退款金额 ( null 表示需要处理退款，仅同步数据 )
      * @param string $reason 退款原因
-     * @return PaymentRecord
-     * @throws Exception
+     * @return \plugin\payment\model\PluginPaymentRecord
+     * @throws \think\admin\Exception
      */
-    public static function syncRefund(string $pCode, ?string &$rCode = '', ?string $amount = null, string $reason = ''): PaymentRecord
+    public static function syncRefund(string $pCode, ?string &$rCode = '', ?string $amount = null, string $reason = ''): PluginPaymentRecord
     {
         // 检查退款单号
-        if ($rCode && PaymentRefund::mk()->where(['code' => $pCode])->findOrEmpty()->isExists()) {
+        if ($rCode && PluginPaymentRefund::mk()->where(['code' => $pCode])->findOrEmpty()->isExists()) {
             throw new Exception("退款单已存在！", 2);
         }
         // 查询支付记录
@@ -250,7 +245,7 @@ trait PaymentUsageTrait
         // 生成退款记录
         $pType = $record->getAttr('channel_type');
         $extra = ['used_payment' => $amount, 'refund_status' => 0];
-        if (in_array($pType, [Payment::EMPTY, Payment::BALANCE, Payment::INTEGRAL, Payment::VOUCHER])) {
+        if (in_array($pType, [Payment::EMPTY, Payment::COUPON, Payment::BALANCE, Payment::INTEGRAL, Payment::VOUCHER])) {
             if ($pType === Payment::BALANCE) {
                 $extra['used_balance'] = $amount;
             } elseif ($pType === Payment::INTEGRAL) {
@@ -264,7 +259,7 @@ trait PaymentUsageTrait
         }
         // 支付金额大于0，并需要创建退款记录
         if ($record->getAttr('payment_amount') >= round($record->getAttr('refund_amount') + floatval($amount), 2)) {
-            PaymentRefund::mk()->save(array_merge([
+            PluginPaymentRefund::mk()->save(array_merge([
                 'unid' => $record->getAttr('unid'), 'record_code' => $pCode,
                 'usid' => $record->getAttr('usid'), 'refund_amount' => $amount,
                 'code' => $rCode = $rCode ?: Payment::withRefundCode(), 'refund_remark' => $reason,
@@ -281,16 +276,16 @@ trait PaymentUsageTrait
 
     /**
      * 获取并同步退款金额的支付单
-     * @param PaymentRecord|string $record
-     * @return PaymentRecord
-     * @throws Exception
+     * @param PluginPaymentRecord|string $record
+     * @return \plugin\payment\model\PluginPaymentRecord
+     * @throws \think\admin\Exception
      */
-    protected static function withPaymentByRefundTotal($record): PaymentRecord
+    protected static function withPaymentByRefundTotal($record): PluginPaymentRecord
     {
         if (is_string($record)) {
-            $record = PaymentRecord::mk()->where(['code' => $record])->findOrEmpty();
+            $record = PluginPaymentRecord::mk()->where(['code' => $record])->findOrEmpty();
         }
-        if (!$record instanceof PaymentRecord || $record->isEmpty()) {
+        if (!$record instanceof PluginPaymentRecord || $record->isEmpty()) {
             throw new Exception("无效的支付单！");
         }
         $total = Payment::totalRefundAmount($record->getAttr('code'));
@@ -309,7 +304,7 @@ trait PaymentUsageTrait
      * @param ?integer $unid 用户账号
      * @param ?integer $usid 终端账号
      * @return integer
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     protected function withUserUnid(AccountInterface $account, ?int &$unid = 0, ?int &$usid = 0): int
     {
@@ -323,7 +318,7 @@ trait PaymentUsageTrait
      * @param AccountInterface $account
      * @param string $field
      * @return mixed|string
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     protected function withUserField(AccountInterface $account, string $field)
     {

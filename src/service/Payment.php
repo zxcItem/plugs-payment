@@ -6,9 +6,9 @@ namespace plugin\payment\service;
 
 use plugin\account\service\Account;
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\model\PaymentConfig;
-use plugin\payment\model\PaymentRecord;
-use plugin\payment\model\PaymentRefund;
+use plugin\payment\model\PluginPaymentConfig;
+use plugin\payment\model\PluginPaymentRecord;
+use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\payment\AliPayment;
@@ -31,12 +31,16 @@ use think\db\Raw;
 abstract class Payment
 {
 
-    // 用户余额支付
+    // 内置支付类型
     const EMPTY = 'empty';
     const COUPON = 'coupon';
     const BALANCE = 'balance';
     const VOUCHER = 'voucher';
     const INTEGRAL = 'integral';
+
+    // 汇聚支付参数
+    const JOINPAY_GZH = 'joinpay_gzh';
+    const JOINPAY_XCX = 'joinpay_xcx';
 
     // 微信商户支付
     const WECHAT_APP = 'wechat_app';
@@ -52,7 +56,7 @@ abstract class Payment
 
     // 已禁用的支付方式
     private static $denys = null;
-    private static $cakey = 'payment.denys';
+    private static $cakey = 'plugin.payment.denys';
 
     // 支付方式配置
     private static $types = [
@@ -169,13 +173,26 @@ abstract class Payment
             'status'  => 1,
             'account' => [Account::ANDROID, Account::IOSAPP],
         ],
+        // 汇聚支持配置（不需要的直接注释）
+        /* self::JOINPAY_XCX => [
+            'name'    => '汇聚小程序支付',
+            'class'   => JoinPayment::class,
+            'status'  => 1,
+            'account' => [Account::WXAPP],
+        ],
+        self::JOINPAY_GZH => [
+            'name'    => '汇聚公众号支付',
+            'class'   => JoinPayment::class,
+            'status'  => 1,
+            'account' => [Account::WECHAT],
+        ], */
     ];
 
     /**
      * 实例化支付配置
      * @param string $code 编号或类型
      * @return PaymentInterface
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public static function mk(string $code): PaymentInterface
     {
@@ -223,7 +240,7 @@ abstract class Payment
         try {
             if (empty($config)) {
                 $map = ['code' => $code, 'status' => 1, 'deleted' => 0];
-                $config = PaymentConfig::mk()->where($map)->findOrEmpty()->toArray();
+                $config = PluginPaymentConfig::mk()->where($map)->findOrEmpty()->toArray();
             }
             if (empty($config)) {
                 throw new Exception("支付配置[#{$code}]参数异常！");
@@ -275,7 +292,7 @@ abstract class Payment
     /**
      * 保存支付方式
      * @return true|integer
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public static function save()
     {
@@ -322,7 +339,7 @@ abstract class Payment
         }
         if ($getfull) {
             $items = [];
-            $query = PaymentConfig::mk()->field('type,code,name,cover,content');
+            $query = PluginPaymentConfig::mk()->field('type,code,name,cover,content');
             $query->where(['status' => 1, 'deleted' => 0])->whereIn('type', array_keys($types));
             foreach ($query->order('sort desc,id desc')->cursor() as $item) {
                 $item['qrcode'] = $item['content']['voucher_qrcode'] ?? '';
@@ -342,7 +359,7 @@ abstract class Payment
     public static function items(): array
     {
         $map = ['status' => 1, 'deleted' => 0];
-        return PaymentConfig::mk()->where($map)->order('sort desc,id desc')->column('type,code,name', 'code');
+        return PluginPaymentConfig::mk()->where($map)->order('sort desc,id desc')->column('type,code,name', 'code');
     }
 
     /**
@@ -380,11 +397,11 @@ abstract class Payment
      * 发起订单整体退款
      * @param string $orderNo
      * @return void
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public static function refund(string $orderNo)
     {
-        $items = PaymentRecord::mq()->where(function (Query $query) {
+        $items = PluginPaymentRecord::mq()->where(function (Query $query) {
             $query->whereOr([['payment_status', '=', 1], ['audit_status', '>', '0']]);
         })->where(['order_no' => $orderNo])->column('code,channel_code,payment_amount');
         foreach ($items as $item) static::mk($item['channel_code'])->refund($item['code'], $item['payment_amount']);
@@ -400,7 +417,7 @@ abstract class Payment
     {
         $map = ['order_no' => $orderNo, 'payment_status' => 1];
         $raw = new Raw($realtime ? 'payment_amount - refund_amount' : 'payment_amount');
-        return round(PaymentRecord::mk()->where($map)->sum($raw), 2);
+        return round(PluginPaymentRecord::mk()->where($map)->sum($raw), 2);
     }
 
     /**
@@ -424,13 +441,13 @@ abstract class Payment
     {
         $total = ['amount' => 0, 'payment' => 0, 'balance' => 0, 'integral' => 0];
         try {
-            PaymentRecord::mk()->where(['order_no' => $orderNo, 'payment_status' => 1])->field([
+            PluginPaymentRecord::mk()->where(['order_no' => $orderNo, 'payment_status' => 1])->field([
                 'channel_type',
                 'sum(payment_amount-refund_amount)'  => 'amount',
                 'sum(used_payment-refund_payment)'   => 'payment',
                 'sum(used_balance-refund_balance)'   => 'balance',
                 'sum(used_integral-refund_integral)' => 'integral',
-            ])->group('channel_type')->select()->map(static function (PaymentRecord $item) use (&$total) {
+            ])->group('channel_type')->select()->map(static function (PluginPaymentRecord $item) use (&$total) {
                 $type = $item->getAttr('channel_type');
                 $total['amount'] += $item->getAttr('amount');
                 if (!in_array($type, [self::INTEGRAL, self::BALANCE])) $type = 'payment';
@@ -451,9 +468,9 @@ abstract class Payment
     {
         $total = ['amount' => 0, 'payment' => 0, 'balance' => 0, 'integral' => 0];
         try {
-            PaymentRefund::mk()->where(['record_code' => $pCode, 'refund_status' => [0, 1]])->field([
+            PluginPaymentRefund::mk()->where(['record_code' => $pCode, 'refund_status' => [0, 1]])->field([
                 'refund_account', 'sum(refund_amount) amount', 'sum(used_payment)' => 'payment', 'sum(used_balance)' => 'balance', 'sum(used_integral)' => 'integral',
-            ])->group('refund_account')->select()->map(static function (PaymentRefund $item) use (&$total) {
+            ])->group('refund_account')->select()->map(static function (PluginPaymentRefund $item) use (&$total) {
                 $type = $item->getAttr('refund_account');
                 $total['amount'] += $item->getAttr('amount');
                 if (!in_array($type, [self::INTEGRAL, self::BALANCE])) $type = 'payment';
@@ -472,7 +489,7 @@ abstract class Payment
     public static function withPaymentCode(): string
     {
         do $data = ['code' => CodeExtend::uniqidNumber(16, 'P')];
-        while (PaymentRecord::mk()->master()->where($data)->findOrEmpty()->isExists());
+        while (PluginPaymentRecord::mk()->master()->where($data)->findOrEmpty()->isExists());
         return $data['code'];
     }
 
@@ -483,7 +500,7 @@ abstract class Payment
     public static function withRefundCode(): string
     {
         do $data = ['code' => CodeExtend::uniqidNumber(16, 'R')];
-        while (PaymentRefund::mk()->master()->where($data)->findOrEmpty()->isExists());
+        while (PluginPaymentRefund::mk()->master()->where($data)->findOrEmpty()->isExists());
         return $data['code'];
     }
 
@@ -494,7 +511,7 @@ abstract class Payment
      * @param string $title 订单标题
      * @param string $remark 订单描述
      * @return PaymentResponse
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
     public static function emptyPayment(AccountInterface $account, string $orderNo, string $title = '商城订单支付', string $remark = '订单金额为0，无需要支付'): PaymentResponse
     {

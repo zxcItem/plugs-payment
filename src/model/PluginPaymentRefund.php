@@ -5,32 +5,32 @@ declare (strict_types=1);
 namespace plugin\payment\model;
 
 use plugin\account\model\Abs;
-use plugin\account\model\AccountUser;
+use plugin\account\model\PluginAccountUser;
 use think\model\relation\HasOne;
 
 /**
  * 用户支付退款模型
- * @class PaymentRecord
+ * @class PluginPaymentRecord
  * @package plugin\payment\model
  */
-class PaymentRefund extends Abs
+class PluginPaymentRefund extends Abs
 {
     /**
      * 关联用户数据
-     * @return HasOne
+     * @return \think\model\relation\HasOne
      */
     public function user(): HasOne
     {
-        return $this->hasOne(AccountUser::class, 'id', 'unid');
+        return $this->hasOne(PluginAccountUser::class, 'id', 'unid');
     }
 
     /**
      * 关联子支付订单
-     * @return HasOne
+     * @return \think\model\relation\HasOne
      */
     public function record(): HasOne
     {
-        return $this->hasOne(PaymentRecord::class, 'code', 'record_code');
+        return $this->hasOne(PluginPaymentRecord::class, 'code', 'record_code');
     }
 
     /**

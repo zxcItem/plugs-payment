@@ -8,10 +8,10 @@ use plugin\account\model\Abs;
 
 /**
  * 用户支付参数模型
- * @class PaymentConfig
+ * @class PluginPaymentConfig
  * @package plugin\payment\model
  */
-class PaymentConfig extends Abs
+class PluginPaymentConfig extends Abs
 {
     protected $oplogName = '商城支付配置';
     protected $oplogType = '商城支付配置';
