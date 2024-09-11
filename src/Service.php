@@ -34,7 +34,7 @@ class Service extends Plugin
     public static function menu(): array
     {
         $code = app(static::class)->appCode;
-        return array_merge(AccountService::menu(), [
+        return [
             [
                 'name' => '支付管理',
                 'subs' => [
@@ -45,6 +45,6 @@ class Service extends Plugin
                     ['name' => '积分明细管理', 'icon' => 'layui-icon layui-icon-diamond', 'node' => "{$code}/integral/index"],
                 ],
             ]
-        ]);
+        ];
     }
 }
