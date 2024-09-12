@@ -1,7 +1,5 @@
 <?php
 
-use plugin\payment\Service;
-use think\admin\extend\PhinxExtend;
 use think\migration\Migrator;
 
 class InstallPayment extends Migrator
