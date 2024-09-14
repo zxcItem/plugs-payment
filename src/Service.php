@@ -41,8 +41,6 @@ class Service extends Plugin
                     ['name' => '支付配置管理', 'icon' => 'layui-icon layui-icon-set', 'node' => "{$code}/config/index"],
                     ['name' => '支付行为管理', 'icon' => 'layui-icon layui-icon-edge', 'node' => "{$code}/record/index"],
                     ['name' => '支付退款管理', 'icon' => 'layui-icon layui-icon-firefox', 'node' => "{$code}/refund/index"],
-                    ['name' => '余额明细管理', 'icon' => 'layui-icon layui-icon-rmb', 'node' => "{$code}/balance/index"],
-                    ['name' => '积分明细管理', 'icon' => 'layui-icon layui-icon-diamond', 'node' => "{$code}/integral/index"],
                 ],
             ]
         ];
