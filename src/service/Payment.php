@@ -428,8 +428,7 @@ abstract class Payment
      */
     public static function leaveAmount(string $orderNo, $orderAmount): float
     {
-        $diff = round(floatval($orderAmount) - self::paidAmount($orderNo, true), 2);
-        return $diff > 0 ? $diff : 0.00;
+        return round(max(floatval($orderAmount) - self::paidAmount($orderNo, true), 0), 2);
     }
 
     /**
@@ -448,10 +447,10 @@ abstract class Payment
                 'sum(used_balance-refund_balance)'   => 'balance',
                 'sum(used_integral-refund_integral)' => 'integral',
             ])->group('channel_type')->select()->map(static function (PluginPaymentRecord $item) use (&$total) {
+                $total['amount'] = round($total['amount'] + $item->getAttr('amount'), 2);
                 $type = $item->getAttr('channel_type');
-                $total['amount'] += $item->getAttr('amount');
                 if (!in_array($type, [self::INTEGRAL, self::BALANCE])) $type = 'payment';
-                $total[$type] += $item[$type] ?? 0;
+                $total[$type] = round($total[$type] + $item[$type] ?? 0, 2);
             });
         } catch (\Exception $exception) {
             trace_file($exception);
@@ -471,10 +470,10 @@ abstract class Payment
             PluginPaymentRefund::mk()->where(['record_code' => $pCode, 'refund_status' => [0, 1]])->field([
                 'refund_account', 'sum(refund_amount) amount', 'sum(used_payment)' => 'payment', 'sum(used_balance)' => 'balance', 'sum(used_integral)' => 'integral',
             ])->group('refund_account')->select()->map(static function (PluginPaymentRefund $item) use (&$total) {
+                $total['amount'] = round($total['amount'] + $item->getAttr('amount'), 2);
                 $type = $item->getAttr('refund_account');
-                $total['amount'] += $item->getAttr('amount');
                 if (!in_array($type, [self::INTEGRAL, self::BALANCE])) $type = 'payment';
-                $total[$type] += $item[$type] ?? 0;
+                $total[$type] = round($total[$type] + $item[$type] ?? 0, 2);
             });
         } catch (\Exception $exception) {
             trace_file($exception);

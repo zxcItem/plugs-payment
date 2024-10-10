@@ -111,13 +111,13 @@ class AliPayment implements PaymentInterface
     /**
      * 支付通知处理
      * @param array $data
-     * @param ?array $notify
+     * @param ?array $body
      * @return \think\Response
      * @throws \WeChat\Exceptions\InvalidResponseException
      */
-    public function notify(array $data = [], ?array $notify = null): Response
+    public function notify(array $data = [], ?array $body = null): Response
     {
-        $notify = $data ?: App::instance($this->config)->notify();
+        $notify = $body ?: App::instance($this->config)->notify();
         if (in_array($notify['trade_status'], ['TRADE_SUCCESS', 'TRADE_FINISHED'])) {
             if ($this->updateAction($notify['out_trade_no'], $notify['trade_no'], $notify['total_amount'])) {
                 return response('success');
